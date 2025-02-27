@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,13 +20,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-ubjfol1e5#9#!sn#4@&1x*uvk1q%h0(4@2q6v*qbw+nvyx7@27"
+SECRET_KEY = "django-insecure-9iiyxp2un%f8^3e1&o&44&8bn=j=h-er46os-#=@+bn+a(&ad1"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
+AUTH_USER_MODEL = 'api.CustomUser'
 
 # Application definition
 
@@ -38,8 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",
-    "api"
+    "api",
 ]
 
 MIDDLEWARE = [
@@ -124,15 +123,3 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-env = environ.Env()
-environ.Env.read_env()
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': env('RRPM_DB_NAME'),
-        'USER': env('RRPM_DB_USER'),
-        'PASSWORD': env('RRPM_DB_PASSWORD'),
-    }
-}
