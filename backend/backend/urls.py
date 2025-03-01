@@ -18,8 +18,12 @@ Including another URLconf
 from django.contrib import admin
 from api import views
 from django.urls import path
+from api.views import RegisterUserView
+
 
 urlpatterns = [
+    path("register/", RegisterUserView.as_view(), name="register"),
     path("admin/", admin.site.urls),
     path("test", views.test.as_view())
 ]
+
