@@ -39,4 +39,24 @@ router.put('/master/password/:id', async (req, res) => {
     }
 });
 
+
+router.post('/ciphered/password', async (req, res) => {
+    const {id} = req.body;
+    const {name} = req.body;
+    const { password } = req.body;
+    try {
+        const response = await sequelize.query(
+            'INSERT INTO cipher_passwords (user_id, name, value) VALUES (:id, :name, :password);',
+            {
+                replacements: { id,name, password },
+                type: sequelize.QueryTypes.INSERT
+            }
+        );
+        res.json(response);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router; 
