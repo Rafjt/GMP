@@ -13,9 +13,9 @@ app.use(express.json());
 app.use('/api',router)
 app.use('/auth', auth);
 
-app.get('/login', (req,res) => {
+// app.get('/login', (req,res) => {
 
-});
+// });
 
 // Start Server
 app.listen(PORT, () => {

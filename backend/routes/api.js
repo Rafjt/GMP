@@ -118,7 +118,7 @@ router.delete('/ciphered/password/:id', async (req, res) => {
 
 router.put('/ciphered/password/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, password } = req.body;
+    const { name, password, description, url } = req.body;
 
     try {
         let query = 'UPDATE cipher_passwords SET value = :password';
@@ -128,6 +128,17 @@ router.put('/ciphered/password/:id', async (req, res) => {
             query += ', name = :name';
             replacements.name = name;
         }
+        
+        if (description) {
+            query += ', description = :description';
+            replacements.description = description;
+        }
+
+        if (url) {
+            query += ', url = :url';
+            replacements.url = url;
+        }
+
 
         query += ' WHERE id = :id';
 
