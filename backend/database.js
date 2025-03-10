@@ -12,7 +12,7 @@ const sequelize = new Sequelize(
   process.env.RRPM_DB_PASSWORD, 
   {
     host: process.env.RRPM_URL,
-    dialect: 'postgres'
+    dialect: 'mysql'
   }
 );
 
