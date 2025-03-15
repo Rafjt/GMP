@@ -4,6 +4,8 @@
     "description": "Chez vous, au travail, n'importe où, RRPM sécurise mots de passe, clés d'accès et informations sensibles",
     "version": "1.0",
     "action": {
-        "default_popup": "index.html"
+        "default_popup": "index.html",
+        "default_width": 800,
+        "default_height": 600
     }
 }
