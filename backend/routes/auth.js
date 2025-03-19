@@ -17,18 +17,17 @@ router.get("/about", (req, res) => {
 router.post("/register", async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password || !email) {
+  if (!email || !password) {
     return res.status(400).json({ error: "Email, and password are required" });
   }
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString("hex"); // Generate token
 
     await sequelize.query(
-      "INSERT INTO rrpm_user (login, hashed_master_password, is_verified, verification_token) VALUES (:email, :hashedPassword, FALSE, :verificationToken);",
+      "INSERT INTO rrpm_user (login, hashed_master_password, is_verified, verification_token) VALUES (:email, :password, FALSE, :verificationToken);",
       {
-        replacements: { email, hashedPassword, verificationToken },
+        replacements: { email, password, verificationToken },
         type: sequelize.QueryTypes.INSERT,
       }
     );

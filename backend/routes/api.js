@@ -28,12 +28,11 @@ router.get('/all_user', async (req, res) => {
 router.put('/master/password/:id', async (req, res) => {
     const { id } = req.params;
     const { password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
     try {
         const response = await sequelize.query(
             'UPDATE rrpm_user SET hashed_master_password = :password WHERE id = :id',
             {
-                replacements: { hashedPassword, id },
+                replacements: { password, id },
                 type: sequelize.QueryTypes.UPDATE
             }
         );
