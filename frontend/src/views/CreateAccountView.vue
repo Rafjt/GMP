@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { isValidEmail, isValidPassword } from '../functions/FormValidation';
+import bcrypt from 'bcryptjs';
 
 const API_BASE_URL = "http://localhost:3001/auth";
 
@@ -48,11 +49,15 @@ const registerUser = async () => {
   errorMessage.value = "";
   successMessage.value = "";
 
+  console.log("le password:",password.value);
+  const hashedPassword = await bcrypt.hash(password.value, 10);
+  console.log("le password hashé:",hashedPassword);
+
   try {
     const response = await fetch(`${API_BASE_URL}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.value, password: password.value }),
+      body: JSON.stringify({ email: email.value, password: hashedPassword }),
     });
 
     const data = await response.json();
