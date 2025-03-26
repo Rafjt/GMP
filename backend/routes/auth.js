@@ -37,7 +37,7 @@ router.post("/register", async (req, res) => {
       email,
       "Verify Your Email",
       `Click the link to verify your email: ${verificationLink}`,
-      null // Assuming you don't need an HTML body
+      null
     );
 
     res
@@ -90,6 +90,7 @@ router.get("/verify-email", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  console.log(password);
 
   try {
     const user = await sequelize.query(
