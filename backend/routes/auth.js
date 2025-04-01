@@ -127,6 +127,27 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.get('/me', (req, res) => {
+  // Retrieve the token from the 'token' cookie
+  const token = req.cookies.token;
+
+  // Check if the token exists
+  if (!token) {
+    return res.status(401).json({ authenticated: false });
+  }
+
+  // Verify the token using jwt
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ authenticated: false });
+    }
+
+    // If token is valid, return authenticated status and user info
+    res.json({ authenticated: true, user: decoded });
+  });
+});
+
+
 router.post('/logout', (req, res) => {
   res.clearCookie('token');
   res.json({ message: 'Logged out' });
