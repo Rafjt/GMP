@@ -44,7 +44,7 @@ const login = async () => {
         successMessage.value = "Login successful!";
         setTimeout(() => router.push("/welcome"), 2000);
       } else {
-        errorMessage.value = data.error || "An error occurred.";
+        errorMessage.value = data.message || "An error occurred.";
       }
     } catch (error) {
       console.error("Error:", error);
@@ -67,7 +67,7 @@ const login = async () => {
         <input v-model="email" type="email" id="email" required class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500">
       </div>
       <div class="mb-4">
-        <label for="password" class="block text-sm font-medium mb-1">Mot de passe</label>
+        <label for="password" class="block text-sm font-medium mb-1">Password</label>
         <input v-model="password" type="password" id="password" required class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500">
       </div>
       <button type="submit" class="button-2">Se connecter</button>
