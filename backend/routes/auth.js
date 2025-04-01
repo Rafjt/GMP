@@ -118,10 +118,28 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign({ id, login }, SECRET_KEY, { expiresIn: "1h" });
 
+    res.cookie('token', token, { maxAge: 3600000 }); // 1 hour > rajouter le secure: true , httpOnly: true,en prod
+
     res.json({ message: "Login successful", token });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/verify-token", async (req, res) => {
+  const token = req.headers.authorization;
+
+  if (!token) {
+    return res.status(401).json({ message: "Token not found" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    res.json(decoded);
+  } catch (error) {
+    console.error("Verify token error:", error);
+    res.status(401).json({ message: "Invalid token" });
   }
 });
 
