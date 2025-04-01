@@ -4,12 +4,13 @@ const PORT = 3001;
 router = require('./routes/api')
 const auth = require('./routes/auth');
 const sequelize = require('./database');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 // const bodyParser = require('body-parser');
 
 // Middleware to parse JSON
 app.use(express.json());
-
+app.use(cookieParser());
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
