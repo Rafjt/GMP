@@ -37,6 +37,7 @@ function handleStorageChange(changes, namespace) {
     <div class="header-content">
       <nav v-if="authState">
         <RouterLink to="/welcome" class="login-link">Welcome</RouterLink>
+        <RouterLink to="/password" class="login-link">Your passwords</RouterLink>
       </nav>
       <nav v-else>
         <RouterLink to="/login" class="login-link">Login</RouterLink>
