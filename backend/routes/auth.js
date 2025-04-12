@@ -118,7 +118,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign({ id, login }, SECRET_KEY, { expiresIn: "1h" });
 
-    res.cookie('token', token, { httpOnly: true, maxAge: 3600000 }); // 1 hour > rajouter le secure: true , httpOnly: true,en prod
+    res.cookie('token', token, { httpOnly: true, sameSite: 'Strict', maxAge: 3600000 }); // 1 hour > rajouter le secure: true , httpOnly: true,en prod
 
     res.json({ message: "Login successful", token });
   } catch (error) {
@@ -137,13 +137,13 @@ router.get('/me', (req, res) => {
   }
 
   // Verify the token using jwt
-  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+  jwt.verify(token, SECRET_KEY, (err) => {
     if (err) {
       return res.status(401).json({ authenticated: false });
     }
 
-    // If token is valid, return authenticated status and user info
-    res.json({ authenticated: true, user: decoded });
+    // If token is valid, return only the authenticated status
+    res.json({ authenticated: true });
   });
 });
 
