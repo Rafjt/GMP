@@ -3,11 +3,13 @@ import { checkMe } from '@/functions/check-me';
 import LoginView from '@/views/LoginView.vue';
 import WelcomeView from '@/views/WelcomeView.vue';
 import CreateAccountView from '@/views/CreateAccountView.vue';
+import PasswordView from '@/views/PasswordView.vue';
 
 const routes = [
   { path: '/login', component: LoginView },
   { path: '/welcome', component: WelcomeView },
-  { path: '/create', component: CreateAccountView }
+  { path: '/create', component: CreateAccountView },
+  { path: '/password', component: PasswordView}
 ];
 
 const router = createRouter({
