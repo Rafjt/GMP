@@ -1,8 +1,10 @@
 <script setup>
 import { computed,watch,ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuth } from '../composables/useAuth'
+import { API_AUTH_URL } from '../components/constant'
+const { refreshAuth } = useAuth()
 
-const API_BASE_URL = "http://localhost:3001/auth";
 
 const email = ref('');
 const password = ref('');
@@ -32,9 +34,10 @@ watch(MissingFieldError, (newValue) => {
 const login = async () => {
   if (email.value && password.value) {
     try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${API_AUTH_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ email: email.value, password: password.value }),
       });
 
@@ -42,7 +45,8 @@ const login = async () => {
 
       if (response.ok) {
         successMessage.value = "Login successful!";
-        setTimeout(() => router.push("/welcome"), 2000);
+        await refreshAuth()
+        setTimeout(() => router.push("/welcome"), 500);
       } else {
         errorMessage.value = data.message || "An error occurred.";
       }

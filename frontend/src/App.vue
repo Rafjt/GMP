@@ -1,16 +1,46 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView, RouterLink } from 'vue-router'
+import { onMounted, ref, onUnmounted } from 'vue'
 
+const authState = ref(false);
+
+const getAuthState = () => {
+  chrome.storage.sync.get(['state'], function (result) {
+    console.log('Retrieved value:', result.state);
+    authState.value = result.state;
+  });
+};
+
+onMounted(() => {
+  getAuthState();
+
+  // Listen to changes in chrome.storage
+  chrome.storage.onChanged.addListener(handleStorageChange);
+});
+
+onUnmounted(() => {
+  chrome.storage.onChanged.removeListener(handleStorageChange);
+});
+
+function handleStorageChange(changes, namespace) {
+  if (namespace === "sync" && changes.state) {
+    console.log("Storage changed: ", changes.state.newValue);
+    authState.value = changes.state.newValue;
+  }
+}
 </script>
 
+
 <template>
+  <h1>Welcome to RRPM !👋</h1>
   <header class="header-container">
     <div class="header-content">
-      <h1>Welcome to RRPM !👋</h1>
-      <nav>
-        <RouterLink to="/" class="login-link">Login</RouterLink>
+      <nav v-if="authState">
+        <RouterLink to="/welcome" class="login-link">Welcome</RouterLink>
       </nav>
-      <nav>
+      <nav v-else>
+        <RouterLink to="/login" class="login-link">Login</RouterLink>
+        <br>
         <RouterLink to="/create" class="login-link">Create an account</RouterLink>
       </nav>
     </div>
@@ -20,6 +50,8 @@ import { RouterLink, RouterView } from 'vue-router'
     <RouterView />
   </main>
 </template>
+
+
 
 <style>
 /* General Layout */
