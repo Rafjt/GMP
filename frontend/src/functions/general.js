@@ -1,5 +1,5 @@
 import { API_AUTH_URL } from "../components/constant.js";
-export { logout };
+export { logout,generatePassword };
 
 
 async function logout() {
@@ -20,3 +20,23 @@ async function logout() {
         return { error: "Logout failed" };
     }
 }
+
+function generatePassword(length, useNumbers = true, useSymbols = true) {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*()_+[]{}|;:,.<>?';
+  
+    // Construction du charset selon les options
+    let charset = lowercase + uppercase;
+    if (useNumbers) charset += numbers;
+    if (useSymbols) charset += symbols;
+  
+    const array = new Uint32Array(length);
+    window.crypto.getRandomValues(array);
+  
+    return Array.from(array)
+      .map(x => charset[x % charset.length])
+      .join('');
+  }
+  
