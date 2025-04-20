@@ -1,14 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { checkMe } from '@/functions/check-me';
 import LoginView from '@/views/LoginView.vue';
-import WelcomeView from '@/views/WelcomeView.vue';
+import LogoutView from '@/views/LogoutView.vue';
 import CreateAccountView from '@/views/CreateAccountView.vue';
 import PasswordView from '@/views/PasswordView.vue';
 import PasswordGeneratorView from '@/views/PasswordGeneratorView.vue';
 
 const routes = [
   { path: '/login', component: LoginView },
-  { path: '/welcome', component: WelcomeView },
+  { path: '/logout', component: LogoutView },
   { path: '/create', component: CreateAccountView },
   { path: '/password', component: PasswordView},
   { path: '/password-generator', component: PasswordGeneratorView }

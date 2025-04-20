@@ -66,62 +66,11 @@ export default {
           <!-- Password will go here -->
           <p class="pwd">{{ password }}</p>
         </div>
-        <button @click="copyPassword" class="copy">Copy</button>
+        <button @click="copyPassword" class="button-event">Copy</button>
         <br>
         <span v-if="isCopied" class="copied">Copied!</span>
       </div>
     </div>
   </template>
 
-<style scoped>
-h2{
-    color: white;
-}
-
-.passg-container{
-    background-color: #ffffff4b;
-    margin-top: 10vh;
-    padding: 5vh;
-    border-radius: 1vh;
-}
-
-.copy {
-  padding: 0.6rem;
-  border: none;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s;
-  margin-bottom: 2vh;
-}
-
-button:hover {
-  background: rgba(255, 255, 255, 0.35);
-}
-
-.passg-options {
-  display: flex;
-  justify-content: space-between;
-}
-
-.passg-result {
-    border: solid 1px rgba(255, 255, 255, 0.428);
-    padding: 1vh;    /* or adjust as needed */
-    margin-bottom: 1vh;
-    height: auto;    /* ensures the div grows with content */
-    word-break: break-all; /* optional, helps long passwords wrap */
-}
-
-.pwd{
-    color: white;
-}
-
-.copied{
-    background-color: #0000004f;
-    padding: 1vh;
-    border-radius: 10px;
-}
-
-</style>
+<style scoped src="@/assets/main.css"></style>
