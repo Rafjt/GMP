@@ -12,8 +12,10 @@ const handleLogout = async () => {
 
 <template>
   <div class="text-center">
-    <h1 class="text-3xl font-bold">Bienvenue ! 🎉</h1>
-    <p class="mt-4">Vous êtes connecté.</p>
-    <button @click="handleLogout" class="mt-4 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">Déconnexion</button>
+    <h1 class="text-3xl font-bold">Do you really want to logout ?</h1>
+    <br>
+    <button @click="handleLogout" class="button-event">Logout</button>
   </div>
 </template>
+
+<style scoped src="@/assets/main.css"></style>

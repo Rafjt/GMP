@@ -33,3 +33,53 @@ a,
     padding: 0 2rem;
   }
 }
+
+h2{
+  color: white;
+}
+
+.passg-container{
+  background-color: #ffffff4b;
+  margin-top: 10vh;
+  padding: 5vh;
+  border-radius: 1vh;
+}
+
+.button-event {
+padding: 0.6rem;
+border: none;
+border-radius: 10px;
+background: rgba(255, 255, 255, 0.2);
+color: white;
+font-weight: bold;
+cursor: pointer;
+transition: background 0.3s;
+margin-bottom: 2vh;
+}
+
+button:hover {
+background: rgba(255, 255, 255, 0.35);
+}
+
+.passg-options {
+display: flex;
+justify-content: space-between;
+}
+
+.passg-result {
+  border: solid 1px rgba(255, 255, 255, 0.428);
+  padding: 1vh;    /* or adjust as needed */
+  margin-bottom: 1vh;
+  height: auto;    /* ensures the div grows with content */
+  word-break: break-all; /* optional, helps long passwords wrap */
+}
+
+.pwd{
+  color: white;
+}
+
+.copied{
+  background-color: #0000004f;
+  padding: 1vh;
+  border-radius: 10px;
+}
