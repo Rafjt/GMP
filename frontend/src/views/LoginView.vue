@@ -62,7 +62,7 @@ const login = async () => {
 
 <template>
   <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
-    <h2 class="text-2xl font-bold mb-6 text-center">Connexion</h2>
+    <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
     <form @submit.prevent="login">
@@ -74,7 +74,7 @@ const login = async () => {
         <label for="password" class="block text-sm font-medium mb-1">Password</label>
         <input v-model="password" type="password" id="password" required class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500">
       </div>
-      <button type="submit" class="button-2">Se connecter</button>
+      <button type="submit" class="button-2">Login</button>
     </form>
   </div>
 </template>
