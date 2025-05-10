@@ -23,7 +23,7 @@ router.post("/register", async (req, res) => {
 
   try {
     const verificationToken = crypto.randomBytes(32).toString("hex"); // Generate token
-
+// rajouter le salt dans les colonnes de création 
     await sequelize.query(
       "INSERT INTO rrpm_user (login, hashed_master_password, is_verified, verification_token) VALUES (:email, :password, FALSE, :verificationToken);",
       {
@@ -72,11 +72,18 @@ router.get("/verify-email", async (req, res) => {
         .status(400)
         .json({ error: "Invalid or expired verification token" });
     }
-
+    const salt = crypto.randomBytes(16).toString("base64");
     await sequelize.query(
-      "UPDATE rrpm_user SET is_verified = TRUE, verification_token = NULL WHERE id = :id;",
+      `
+      UPDATE rrpm_user
+      SET
+        is_verified = TRUE,
+        verification_token = NULL,
+        salt = :salt
+      WHERE id = :id;
+      `,
       {
-        replacements: { id: user.id },
+        replacements: { id: user.id, salt },
         type: sequelize.QueryTypes.UPDATE,
       }
     );
