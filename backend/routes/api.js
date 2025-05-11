@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const router = express.Router();
 const sequelize = require("../database");
+const jwt = require('jsonwebtoken');
+const SECRET_KEY = process.env.JWT_SECRET;
 
 app.use('/api', router);
 
@@ -22,6 +24,30 @@ router.get('/all_user', async (req, res) => {
         res.status(500).json({error: 'Internal server error'});
     }
 });
+
+
+router.get('/get_salt', async (req, res) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    const id = decoded.id;
+
+    const response = await sequelize.query(
+      'SELECT salt FROM rrpm_user WHERE id = :id',
+      { replacements: {id} }
+    );
+    res.json(response[0]);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+});
+
 
 // Master password route
 
