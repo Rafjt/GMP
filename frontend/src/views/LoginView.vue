@@ -3,7 +3,11 @@ import { computed,watch,ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth'
 import { API_AUTH_URL } from '../components/constant'
-const { refreshAuth } = useAuth()
+import { API_BASE_URL } from '../components/constant'
+import { useEncryptionKey } from "@/composables/useEncryptionKey";
+import { deriveKey } from "@/crypto/deriveKey"; // Your WebCrypto-based KDF function
+const { refreshAuth } = useAuth();
+const { setKey } = useEncryptionKey();
 
 
 const email = ref('');
@@ -40,13 +44,25 @@ const login = async () => {
         credentials: 'include',
         body: JSON.stringify({ email: email.value, password: password.value }),
       });
+      const salt_response = await fetch(`${API_BASE_URL}/get_salt`, {
+        method: "GET",
+        credentials: 'include',
+      });
 
       const data = await response.json();
+      const salt_data = await salt_response.json();
+      console.log(salt_data);
 
       if (response.ok) {
-        successMessage.value = "Login successful!";
-        await refreshAuth()
-        setTimeout(() => router.push("/welcome"), 500);
+        if (salt_response.ok){
+          const salt = salt_data[0].salt;
+          console.log("ici:",salt);
+          const key = await deriveKey(password.value, salt);
+          setKey(key);
+          successMessage.value = "Login successful!";
+          await refreshAuth()
+          setTimeout(() => router.push("/welcome"), 500);
+        }
       } else {
         errorMessage.value = data.message || "An error occurred.";
       }
