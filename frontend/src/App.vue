@@ -94,7 +94,6 @@ body {
 /* Main Content Styling */
 .main-container {
   flex-grow: 1;
-  display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
@@ -118,4 +117,5 @@ h1 {
 .login-link:hover {
   text-decoration: underline;
 }
+
 </style>
