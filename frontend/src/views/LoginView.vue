@@ -3,7 +3,11 @@ import { computed,watch,ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth'
 import { API_AUTH_URL } from '../components/constant'
-const { refreshAuth } = useAuth()
+import { API_BASE_URL } from '../components/constant'
+import { useEncryptionKey } from "@/composables/useEncryptionKey";
+import { deriveKey } from "@/crypto/deriveKey"; // Your WebCrypto-based KDF function
+const { refreshAuth } = useAuth();
+const { setKey } = useEncryptionKey();
 
 
 const email = ref('');
@@ -31,6 +35,7 @@ watch(MissingFieldError, (newValue) => {
   errorMessage.value = newValue;
 });
 
+// Mettre la fonction ci dessous dans un fichier functions ⌛
 const login = async () => {
   if (email.value && password.value) {
     try {
@@ -40,13 +45,26 @@ const login = async () => {
         credentials: 'include',
         body: JSON.stringify({ email: email.value, password: password.value }),
       });
+      const salt_response = await fetch(`${API_BASE_URL}/get_salt`, {
+        method: "GET",
+        credentials: 'include',
+      });
 
       const data = await response.json();
+      const salt_data = await salt_response.json();
+      console.log(salt_data);
 
       if (response.ok) {
-        successMessage.value = "Login successful!";
-        await refreshAuth()
-        setTimeout(() => router.push("/welcome"), 500);
+        if (salt_response.ok){
+          const salt = salt_data[0].salt;
+          console.log("ici:",salt);
+          const key = await deriveKey(password.value, salt);
+          setKey(key);
+          console.log(key)
+          successMessage.value = "Login successful!";
+          await refreshAuth()
+          setTimeout(() => router.push("/welcome"), 500);
+        }
       } else {
         errorMessage.value = data.message || "An error occurred.";
       }
@@ -62,7 +80,7 @@ const login = async () => {
 
 <template>
   <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
-    <h2 class="text-2xl font-bold mb-6 text-center">Connexion</h2>
+    <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
     <form @submit.prevent="login">
@@ -74,7 +92,7 @@ const login = async () => {
         <label for="password" class="block text-sm font-medium mb-1">Password</label>
         <input v-model="password" type="password" id="password" required class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500">
       </div>
-      <button type="submit" class="button-2">Se connecter</button>
+      <button type="submit" class="button-2">Login</button>
     </form>
   </div>
 </template>

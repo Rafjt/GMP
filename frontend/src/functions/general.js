@@ -1,6 +1,79 @@
-import { API_AUTH_URL } from "../components/constant.js";
-export { logout,generatePassword };
+import { API_AUTH_URL,API_BASE_URL } from "../components/constant.js";
+export { logout,generatePassword,pullPassword,deletePassword,createPassword };
 
+async function pullPassword() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/ciphered/password`, {
+            method: "GET",
+            credentials: "include",
+        });
+        let data;
+        try {
+            data = await response.json();
+        } catch (jsonError) {
+            console.error("JSON parsing error:", jsonError);
+            return { error: "Received malformed data from the server." };
+        }
+
+        if (response.ok) {
+            return data;
+        } else {
+            return {
+                error: data?.message || "Failed to pull passwords.",
+                status: response.status
+            };
+        }
+    } catch (error) {
+        console.error("Network or unexpected error:", error);
+        return { error: "Network error: Could not reach the server. Please try again." };
+    }
+}
+
+async function deletePassword(id) {
+    try {
+        const response = await fetch (`${API_BASE_URL}/ciphered/password/${id}`, {
+            method: "DELETE",
+            credentials: "include"
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            return data;
+        } else {
+            return {
+                error: data?.message || "Failed to delete passwords.",
+                status: response.status
+            };
+        }
+    } catch (error) {
+        console.error("Network or unexpected error:", error);
+        return { error: "Network error: Could not reach the server. Please try again." };
+    }
+}
+
+async function createPassword(name,value,description,url) {
+    try {
+        const response = await fetch (`${API_BASE_URL}/ciphered/password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ name, password: value, description, url })
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            return data;
+        } else {
+            return {
+                error: data?.message || "Failed to create password.",
+                status: response.status
+            };
+        }
+    } catch (error) {
+        console.error("Network or unexpected error:", error);
+        return { error: "Network error: Could not reach the server. Please try again." };
+    }
+}
 
 async function logout() {
     try {
@@ -39,4 +112,3 @@ function generatePassword(length, useNumbers = true, useSymbols = true) {
       .map(x => charset[x % charset.length])
       .join('');
   }
-  

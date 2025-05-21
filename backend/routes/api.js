@@ -2,6 +2,10 @@ const express = require("express");
 const app = express();
 const router = express.Router();
 const sequelize = require("../database");
+const jwt = require('jsonwebtoken');
+const SECRET_KEY = process.env.JWT_SECRET;
+
+// TODO: mettre la verif du token partout ou c'est nécéssaire ⌛
 
 app.use('/api', router);
 
@@ -22,6 +26,30 @@ router.get('/all_user', async (req, res) => {
         res.status(500).json({error: 'Internal server error'});
     }
 });
+
+
+router.get('/get_salt', async (req, res) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    const id = decoded.id;
+
+    const response = await sequelize.query(
+      'SELECT salt FROM rrpm_user WHERE id = :id',
+      { replacements: {id} }
+    );
+    res.json(response[0]);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+});
+
 
 // Master password route
 
@@ -47,9 +75,16 @@ router.put('/master/password/:id', async (req, res) => {
 /// ciphered passwords
 
 router.post('/ciphered/password', async (req, res) => {
-    const { id, name, password, description, url } = req.body;
+    const { name, password, description, url } = req.body;
+    const token = req.cookies.token;
+
+    if (!token) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
 
     try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const id = decoded.id;
         let query = 'INSERT INTO cipher_passwords (user_id, name, value';
         let values = 'VALUES (:id, :name, :password';
         let replacements = { id, name, password };
@@ -82,9 +117,16 @@ router.post('/ciphered/password', async (req, res) => {
     }
 });
 
-router.get('/ciphered/password/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
+router.get('/ciphered/password', async (req, res) => {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
+
+      try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const id = decoded.id;
+
         const response = await sequelize.query(
             'SELECT * FROM cipher_passwords WHERE user_id = :id',
             {
@@ -98,6 +140,7 @@ router.get('/ciphered/password/:id', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 
 router.delete('/ciphered/password/:id', async (req, res) => {
     const { id } = req.params;
