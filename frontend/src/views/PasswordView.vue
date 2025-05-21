@@ -1,11 +1,13 @@
 <script setup>
-import {pullPassword,deletePassword} from '../functions/general'
-import { onMounted, ref, onUnmounted } from 'vue'
+import { pullPassword, deletePassword } from '../functions/general';
+import { onMounted, ref } from 'vue';
+import { decrypt } from '@/crypto/encryption';
+import { useEncryptionKey } from '@/composables/useEncryptionKey';
 
-onMounted(async () => {
-  const data = await pullPassword();
-  passwords.value = data;
-});
+const passwords = ref([]);
+const { derivedKey } = useEncryptionKey();
+
+console.log(derivedKey);
 
 const handleDelete = async (id) => {
   console.log("deletion of", id)
@@ -13,9 +15,37 @@ const handleDelete = async (id) => {
   passwords.value = passwords.value.filter(item => item.id !== id)
 }
 
+onMounted(async () => {
+  const data = await pullPassword();
 
-const passwords = ref([]);
+  if (data?.error) {
+    console.error(data.error);
+    return;
+  }
+
+  // Ensure the key is available before trying to decrypt
+  if (!derivedKey.value) {
+    console.error("Encryption key not available in memory.");
+    return;
+  }
+
+  // Decrypt each password's `value` field
+  const decryptedPasswords = await Promise.all(
+    data.map(async item => {
+      try {
+        const decryptedValue = await decrypt(item.value);
+        return { ...item, value: decryptedValue };
+      } catch (e) {
+        console.error(`Failed to decrypt password ${item.id}:`, e);
+        return { ...item, value: "[Decryption failed]" };
+      }
+    })
+  );
+
+  passwords.value = decryptedPasswords;
+});
 </script>
+
 
 
 <template>
@@ -24,8 +54,11 @@ const passwords = ref([]);
         <!-- Top row: Search & Add -->
         <div class="search-add">
           <span class="text-gray-200">Search</span>
-          <button class="text-blue-400 font-semibold hover:text-blue-600">Add +</button>
+          <RouterLink to="/password-management" class="button">
+            Add +
+          </RouterLink>
         </div>
+
   
         <!-- Divider -->
         <hr class="border-gray-400 mb-4" />
@@ -37,10 +70,10 @@ const passwords = ref([]);
                 :key="item.id"
                 class="test"
                 >
-                <span>{{ item.name }}</span>
+                <span>{{ item.value }}</span>
                 <div class="pwd-buttons">
-                    <button class="text-yellow-300 hover:text-yellow-500">Edit</button>
-                    <button @click="handleDelete(item.id)" class="text-red-400 hover:text-red-600">Delete</button>
+                    <button class="button">Edit</button>
+                    <button @click="handleDelete(item.id)" class="button">Delete</button>
                 </div>
             </div>
         </div>
@@ -98,6 +131,17 @@ const passwords = ref([]);
   float: none;
   overflow: hidden;
 }
+
+.button {
+  background-color:#efefef87;
+  padding: 2% 3%;
+  color: black;
+  border-radius: 10%;
+  border-width: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 
   </style>
   
