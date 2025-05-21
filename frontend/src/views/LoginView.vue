@@ -35,6 +35,7 @@ watch(MissingFieldError, (newValue) => {
   errorMessage.value = newValue;
 });
 
+// Mettre la fonction ci dessous dans un fichier functions ⌛
 const login = async () => {
   if (email.value && password.value) {
     try {
@@ -59,6 +60,7 @@ const login = async () => {
           console.log("ici:",salt);
           const key = await deriveKey(password.value, salt);
           setKey(key);
+          console.log(key)
           successMessage.value = "Login successful!";
           await refreshAuth()
           setTimeout(() => router.push("/welcome"), 500);
