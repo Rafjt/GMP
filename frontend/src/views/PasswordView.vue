@@ -1,50 +1,47 @@
 <script setup>
 import { pullPassword, deletePassword } from '../functions/general';
 import { onMounted, ref } from 'vue';
-import { decrypt } from '@/crypto/encryption';
-import { useEncryptionKey } from '@/composables/useEncryptionKey';
+import { decrypt } from '@/crypto/encryption'; // ✅ import the reusable decrypt()
 
 const passwords = ref([]);
-const { derivedKey } = useEncryptionKey();
-
-console.log(derivedKey);
 
 const handleDelete = async (id) => {
-  console.log("deletion of", id)
-  await deletePassword(id)
-  passwords.value = passwords.value.filter(item => item.id !== id)
-}
+  console.log("deletion of", id);
+  await deletePassword(id);
+  passwords.value = passwords.value.filter(item => item.id !== id);
+};
 
 onMounted(async () => {
   const data = await pullPassword();
+  if (data?.error) return console.error(data.error);
 
-  if (data?.error) {
-    console.error(data.error);
-    return;
+  try {
+    const decryptedPasswords = await Promise.all(
+      data.map(async (item) => {
+        const cipherText = item.value; // Assuming the encrypted string is here
+        try {
+          const plainText = await decrypt(cipherText); // ✅ Use background decrypt
+          return {
+            ...item,
+            value: plainText
+          };
+        } catch (err) {
+          console.error(`Failed to decrypt password with id ${item.id}:`, err);
+          return {
+            ...item,
+            value: "[DECRYPTION FAILED]"
+          };
+        }
+      })
+    );
+
+    passwords.value = decryptedPasswords;
+  } catch (error) {
+    console.error("Error decrypting passwords:", error);
   }
-
-  // Ensure the key is available before trying to decrypt
-  if (!derivedKey.value) {
-    console.error("Encryption key not available in memory.");
-    return;
-  }
-
-  // Decrypt each password's `value` field
-  const decryptedPasswords = await Promise.all(
-    data.map(async item => {
-      try {
-        const decryptedValue = await decrypt(item.value);
-        return { ...item, value: decryptedValue };
-      } catch (e) {
-        console.error(`Failed to decrypt password ${item.id}:`, e);
-        return { ...item, value: "[Decryption failed]" };
-      }
-    })
-  );
-
-  passwords.value = decryptedPasswords;
 });
 </script>
+
 
 
 
