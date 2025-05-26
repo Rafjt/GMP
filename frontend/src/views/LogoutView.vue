@@ -5,6 +5,10 @@ import { logout as performLogout } from '../functions/general'; // Rename the im
 const router = useRouter();
 
 const handleLogout = async () => {
+    chrome.runtime.sendMessage({ type: 'LOCK' }, () => {
+    console.log("Vault locked");
+  });
+
   await performLogout(); // Call the imported logout function
   router.push('/login'); // Redirect to the login page or home after logout
 };

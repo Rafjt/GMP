@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { createPassword } from '../functions/general'
 import { useRouter } from 'vue-router'
-import { encrypt } from "@/crypto/encryption";
+import { encrypt } from '@/crypto/encryption' // ✅ Use the reusable encrypt()
 
 const name = ref('')
 const value = ref('')
@@ -15,19 +15,23 @@ const router = useRouter()
 const initCreatePassword = async () => {
   isLoading.value = true
 
-  const encrypted = await encrypt(value.value);
-  const result = await createPassword(name.value, encrypted, description.value, url.value)
+  try {
+    const encrypted = await encrypt(value.value) // ✅ Use it here
+    const result = await createPassword(name.value, encrypted, description.value, url.value)
 
-  if (result && !result.error) {
-    // Optional: show success message or redirect
-    setTimeout(() => router.push("/password"), 100);
-  } else {
-    console.error('Password creation failed:', result.error)
+    if (result && !result.error) {
+      setTimeout(() => router.push("/password"), 100)
+    } else {
+      console.error('Password creation failed:', result.error)
+      isLoading.value = false
+    }
+  } catch (err) {
+    console.error("Erreur pendant le chiffrement :", err)
     isLoading.value = false
-    // You could display an error message here
   }
 }
 </script>
+
 
 <template>
     <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">

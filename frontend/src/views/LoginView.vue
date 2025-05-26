@@ -4,10 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth'
 import { API_AUTH_URL } from '../components/constant'
 import { API_BASE_URL } from '../components/constant'
-import { useEncryptionKey } from "@/composables/useEncryptionKey";
-import { deriveKey } from "@/crypto/deriveKey"; // Your WebCrypto-based KDF function
 const { refreshAuth } = useAuth();
-const { setKey } = useEncryptionKey();
 
 
 const email = ref('');
@@ -35,47 +32,66 @@ watch(MissingFieldError, (newValue) => {
   errorMessage.value = newValue;
 });
 
-// Mettre la fonction ci dessous dans un fichier functions ⌛
+// TODO: Mettre les fonction ci dessous dans un fichier functions ⌛
 const login = async () => {
   if (email.value && password.value) {
     try {
+      // Step 1: Attempt login
       const response = await fetch(`${API_AUTH_URL}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: email.value, password: password.value }),
-      });
-      const salt_response = await fetch(`${API_BASE_URL}/get_salt`, {
-        method: "GET",
-        credentials: 'include',
+        body: JSON.stringify({ email: email.value, password: password.value })
       });
 
       const data = await response.json();
-      const salt_data = await salt_response.json();
-      console.log(salt_data);
 
-      if (response.ok) {
-        if (salt_response.ok){
-          const salt = salt_data[0].salt;
-          console.log("ici:",salt);
-          const key = await deriveKey(password.value, salt);
-          setKey(key);
-          console.log(key)
-          successMessage.value = "Login successful!";
-          await refreshAuth()
-          setTimeout(() => router.push("/welcome"), 500);
-        }
-      } else {
-        errorMessage.value = data.message || "An error occurred.";
+      if (!response.ok) {
+        errorMessage.value = data.message || "Login failed.";
+        return;
       }
-    } catch (error) {
-      console.error("Error:", error);
-      errorMessage.value = "Unable to contact the server.";
+
+      // Step 2: If login succeeded, get the salt
+      const salt_response = await fetch(`${API_BASE_URL}/get_salt`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      const salt_data = await salt_response.json();
+
+      if (!salt_response.ok || !salt_data[0]?.salt) {
+        errorMessage.value = "Failed to retrieve salt.";
+        return;
+      }
+
+      const salt = salt_data[0].salt;
+
+      // Step 3: Send message to background to derive and store key
+      console.log("GONNA CALL UNLOCK");
+      chrome.runtime.sendMessage(
+        { type: 'UNLOCK', password: password.value, salt },
+        (res) => {
+          if (chrome.runtime.lastError) {
+            console.error("Runtime error:", chrome.runtime.lastError.message);
+            errorMessage.value = "Background communication failed.";
+          } else if (res.success) {
+            console.log("Vault unlocked");
+            router.push("/welcome");
+          } else {
+            errorMessage.value = "Key derivation failed.";
+          }
+        }
+      );
+
+    } catch (err) {
+      errorMessage.value = "Server error.";
+      console.error(err);
     }
   } else {
     errorMessage.value = "Please fill all login inputs.";
   }
 };
+
 </script>
 
 <template>
