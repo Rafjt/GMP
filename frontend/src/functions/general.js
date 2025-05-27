@@ -1,5 +1,5 @@
 import { API_AUTH_URL,API_BASE_URL } from "../components/constant.js";
-export { logout,generatePassword,pullPassword,deletePassword,createPassword };
+export { logout,generatePassword,pullPassword,deletePassword,createPassword,loginUser,getSalt };
 
 async function pullPassword() {
     try {
@@ -112,3 +112,41 @@ function generatePassword(length, useNumbers = true, useSymbols = true) {
       .map(x => charset[x % charset.length])
       .join('');
   }
+
+async function loginUser(email, password) {
+    try {
+        const response = await fetch(`${API_AUTH_URL}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            return data;
+        } else {
+            return { error: data.message || "Login failed" };
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        return { error: "Login failed" };
+    }
+}
+
+async function getSalt() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/get_salt`, {
+            method: "GET",
+            credentials: "include"
+        });
+        const data = await response.json();
+        if (response.ok && data[0]?.salt) {
+            return { salt: data[0].salt };
+        } else {
+            return { error: "Failed to retrieve salt" };
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        return { error: "Failed to retrieve salt" };
+    }
+}
