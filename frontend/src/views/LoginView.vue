@@ -1,12 +1,10 @@
 <script setup>
-import { computed,watch,ref } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuth } from '../composables/useAuth'
-import { API_AUTH_URL } from '../components/constant'
-import { API_BASE_URL } from '../components/constant'
+import { useAuth } from '../composables/useAuth';
+import { loginUser, getSalt } from '@/functions/general';
+
 const { refreshAuth } = useAuth();
-
-
 const email = ref('');
 const password = ref('');
 const router = useRouter();
@@ -17,14 +15,13 @@ const touchedFields = ref({ email: false, password: false });
 watch(email, () => {
   touchedFields.value.email = true;
 });
-
 watch(password, () => {
   touchedFields.value.password = true;
 });
 
 const MissingFieldError = computed(() => {
-  return (touchedFields.value.email && !email.value) || (touchedFields.value.password && !password.value) 
-    ? "Please fill all login inputs" 
+  return (touchedFields.value.email && !email.value) || (touchedFields.value.password && !password.value)
+    ? "Please fill all login inputs"
     : '';
 });
 
@@ -32,41 +29,25 @@ watch(MissingFieldError, (newValue) => {
   errorMessage.value = newValue;
 });
 
-// TODO: Mettre les fonction ci dessous dans un fichier functions ⌛
 const login = async () => {
   if (email.value && password.value) {
     try {
-      // Step 1: Attempt login
-      const response = await fetch(`${API_AUTH_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email: email.value, password: password.value })
-      });
+      const loginResponse = await loginUser(email.value, password.value);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        errorMessage.value = data.message || "Login failed.";
+      if (loginResponse.error) {
+        errorMessage.value = loginResponse.error;
         return;
       }
 
-      // Step 2: If login succeeded, get the salt
-      const salt_response = await fetch(`${API_BASE_URL}/get_salt`, {
-        method: 'GET',
-        credentials: 'include'
-      });
+      const saltResponse = await getSalt();
 
-      const salt_data = await salt_response.json();
-
-      if (!salt_response.ok || !salt_data[0]?.salt) {
-        errorMessage.value = "Failed to retrieve salt.";
+      if (saltResponse.error) {
+        errorMessage.value = saltResponse.error;
         return;
       }
 
-      const salt = salt_data[0].salt;
+      const salt = saltResponse.salt;
 
-      // Step 3: Send message to background to derive and store key
       console.log("GONNA CALL UNLOCK");
       chrome.runtime.sendMessage(
         { type: 'UNLOCK', password: password.value, salt },
@@ -82,7 +63,6 @@ const login = async () => {
           }
         }
       );
-
     } catch (err) {
       errorMessage.value = "Server error.";
       console.error(err);
@@ -91,8 +71,8 @@ const login = async () => {
     errorMessage.value = "Please fill all login inputs.";
   }
 };
-
 </script>
+
 
 <template>
   <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
