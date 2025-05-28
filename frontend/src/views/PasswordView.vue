@@ -1,16 +1,38 @@
 <script setup>
-import { pullPassword, deletePassword,logout } from '../functions/general';
+import { pullPassword, deletePassword, logout } from '../functions/general';
 import { useRouter } from 'vue-router';
 import { onMounted, ref } from 'vue';
-import { decrypt } from '@/crypto/encryption'; // ✅ import the reusable decrypt()
+import { decrypt } from '@/crypto/encryption';
 
 const passwords = ref([]);
+const visiblePasswords = ref({});
 const router = useRouter();
+const copiedStatus = ref({});
+
+const copyToClipboard = async (id, text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    copiedStatus.value[id] = true;
+
+
+    setTimeout(() => {
+      copiedStatus.value[id] = false;
+    }, 1500);
+  } catch (err) {
+    console.error("Failed to copy to clipboard:", err);
+  }
+};
+
+
 
 const handleDelete = async (id) => {
   console.log("deletion of", id);
   await deletePassword(id);
   passwords.value = passwords.value.filter(item => item.id !== id);
+};
+
+const toggleVisibility = (id) => {
+  visiblePasswords.value[id] = !visiblePasswords.value[id];
 };
 
 onMounted(async () => {
@@ -20,9 +42,9 @@ onMounted(async () => {
   try {
     const decryptedPasswords = await Promise.all(
       data.map(async (item) => {
-        const cipherText = item.value; // Assuming the encrypted string is here
+        const cipherText = item.value;
         try {
-          const plainText = await decrypt(cipherText); // ✅ Use background decrypt
+          const plainText = await decrypt(cipherText);
           return {
             ...item,
             value: plainText
@@ -51,39 +73,62 @@ onMounted(async () => {
 
 
 
-
 <template>
-    <div class="main-container">
-      <div class="password-list">
-        <!-- Top row: Search & Add -->
-        <div class="search-add">
-          <span class="text-gray-200">Search</span>
-          <RouterLink to="/password-management" class="button">
-            Add +
-          </RouterLink>
-        </div>
+  <div class="main-container">
+    <div class="password-list">
 
-  
-        <!-- Divider -->
-        <hr class="border-gray-400 mb-4" />
-  
-        <!-- Password List (scrollable and full width without overflow) -->
-        <div class="pwd-elements">
-            <div
-                v-for="(item, index) in passwords"
-                :key="item.id"
-                class="test"
-                >
-                <span>{{ item.value }}</span>
-                <div class="pwd-buttons">
-                    <button class="button">Edit</button>
-                    <button @click="handleDelete(item.id)" class="button">Delete</button>
-                </div>
-            </div>
+      <div class="search-add">
+        <span class="text-gray-200">Search</span>
+        <RouterLink to="/password-management" class="button">
+          Add +
+        </RouterLink>
+      </div>
+
+
+      <hr class="border-gray-400 mb-4" />
+
+
+      <div class="pwd-elements">
+        <div
+          v-for="(item, index) in passwords"
+          :key="item.id"
+          class="test"
+        >
+          <text class="pwd-name">{{ item.name }}</text>
+
+          <span
+            class="pwd-value"
+            v-if="visiblePasswords[item.id]"
+            @click="copyToClipboard(item.id, item.value)"
+            style="cursor: pointer;"
+            :title="'Click to copy'"
+          >
+            <template v-if="copiedStatus[item.id]">
+              ✅ Copied!
+            </template>
+            <template v-else>
+              {{ item.value.length > 12 ? item.value.slice(0, 12) + '…' : item.value }}
+            </template>
+          </span>
+
+          <span v-else class="pwd-value">
+            {{ '•'.repeat(Math.min(item.value.length, 12)) + (item.value.length > 12 ? '…' : '') }}
+          </span>
+
+          <button @click="toggleVisibility(item.id)" class="button">
+            {{ visiblePasswords[item.id] ? 'Hide' : 'Show' }}
+          </button>
+
+          <div class="pwd-buttons">
+            <button class="button">Edit</button>
+            <button @click="handleDelete(item.id)" class="button">Delete</button>
+          </div>
         </div>
       </div>
     </div>
-  </template>
+  </div>
+</template>
+
 
   
   <style>
@@ -138,12 +183,20 @@ onMounted(async () => {
 
 .button {
   background-color:#efefef87;
-  padding: 2% 3%;
+  /* padding: 2% 3%; */
   color: black;
   border-radius: 10%;
   border-width: 0;
   text-decoration: none;
   cursor: pointer;
+}
+
+.pwd-name {
+  font-weight: bold;
+}
+
+.pwd-value {
+  transition: color 0.3s ease;
 }
 
 
