@@ -1,9 +1,11 @@
 <script setup>
-import { pullPassword, deletePassword } from '../functions/general';
+import { pullPassword, deletePassword,logout } from '../functions/general';
+import { useRouter } from 'vue-router';
 import { onMounted, ref } from 'vue';
 import { decrypt } from '@/crypto/encryption'; // ✅ import the reusable decrypt()
 
 const passwords = ref([]);
+const router = useRouter();
 
 const handleDelete = async (id) => {
   console.log("deletion of", id);
@@ -27,6 +29,11 @@ onMounted(async () => {
           };
         } catch (err) {
           console.error(`Failed to decrypt password with id ${item.id}:`, err);
+          if (err.message === "Key is missing.") {
+            console.warn("Key is missing, logging out user.");
+            logout();
+            router.push('/login');
+          }
           return {
             ...item,
             value: "[DECRYPTION FAILED]"
