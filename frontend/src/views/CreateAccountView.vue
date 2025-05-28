@@ -16,11 +16,11 @@ const router = useRouter();
 
 // Vérifications des erreurs (s'affichent après blur)
 const emailError = computed(() => {
-  return touchedFields.value.email && !isValidEmail(email.value) ? "Email invalide" : '';
+  return touchedFields.value.email && !isValidEmail(email.value) ? "invalid email" : '';
 });
 
 const passwordError = computed(() => {
-  return touchedFields.value.password && !isValidPassword(password.value) ? "Mot de passe invalide" : '';
+  return touchedFields.value.password && !isValidPassword(password.value) ? "Invalid password" : '';
 });
 
 // Marque un champ comme touché après blur
@@ -63,14 +63,14 @@ const registerUser = async () => {
     const data = await response.json();
 
     if (response.ok) {
-      successMessage.value = "Inscription réussie ! Vérifiez votre email.";
+      successMessage.value = "Registration succeded ! Please verify your email.";
       setTimeout(() => router.push("/"), 2000);
     } else {
-      errorMessage.value = data.error || "Une erreur est survenue.";
+      errorMessage.value = data.error || "An error occured.";
     }
   } catch (error) {
-    console.error("Erreur:", error);
-    errorMessage.value = "Impossible de contacter le serveur.";
+    console.error("Error:", error);
+    errorMessage.value = "Unable to contact the server.";
   } finally {
     isLoading.value = false;
   }
@@ -79,7 +79,7 @@ const registerUser = async () => {
 
 <template>
   <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
-    <h2 class="text-2xl font-bold mb-6 text-center">Créer un compte</h2>
+    <h2 class="text-2xl font-bold mb-6 text-center">Create an account</h2>
 
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
@@ -99,7 +99,7 @@ const registerUser = async () => {
       </div>
 
       <div class="mb-4">
-        <label for="password" class="block text-sm font-medium mb-1">Mot de passe</label>
+        <label for="password" class="block text-sm font-medium mb-1">Password</label>
         <input 
           v-model="password" 
           @blur="markAsTouched('password')" 
@@ -112,7 +112,7 @@ const registerUser = async () => {
       </div>
 
       <button type="submit" class="button-2" :disabled="isLoading">
-        {{ isLoading ? "Création..." : "Créer un compte" }}
+        {{ isLoading ? "Creation..." : "Create" }}
       </button>
     </form>
   </div>

@@ -1,11 +1,10 @@
 <script setup>
-import { computed,watch,ref } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuth } from '../composables/useAuth'
-import { API_AUTH_URL } from '../components/constant'
-const { refreshAuth } = useAuth()
+import { useAuth } from '../composables/useAuth';
+import { loginUser, getSalt } from '@/functions/general';
 
-
+const { refreshAuth } = useAuth();
 const email = ref('');
 const password = ref('');
 const router = useRouter();
@@ -16,14 +15,13 @@ const touchedFields = ref({ email: false, password: false });
 watch(email, () => {
   touchedFields.value.email = true;
 });
-
 watch(password, () => {
   touchedFields.value.password = true;
 });
 
 const MissingFieldError = computed(() => {
-  return (touchedFields.value.email && !email.value) || (touchedFields.value.password && !password.value) 
-    ? "Please fill all login inputs" 
+  return (touchedFields.value.email && !email.value) || (touchedFields.value.password && !password.value)
+    ? "Please fill all login inputs"
     : '';
 });
 
@@ -34,25 +32,40 @@ watch(MissingFieldError, (newValue) => {
 const login = async () => {
   if (email.value && password.value) {
     try {
-      const response = await fetch(`${API_AUTH_URL}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: 'include',
-        body: JSON.stringify({ email: email.value, password: password.value }),
-      });
+      const loginResponse = await loginUser(email.value, password.value);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        successMessage.value = "Login successful!";
-        await refreshAuth()
-        setTimeout(() => router.push("/welcome"), 500);
-      } else {
-        errorMessage.value = data.message || "An error occurred.";
+      if (loginResponse.error) {
+        errorMessage.value = loginResponse.error;
+        return;
       }
-    } catch (error) {
-      console.error("Error:", error);
-      errorMessage.value = "Unable to contact the server.";
+
+      const saltResponse = await getSalt();
+
+      if (saltResponse.error) {
+        errorMessage.value = saltResponse.error;
+        return;
+      }
+
+      const salt = saltResponse.salt;
+
+      console.log("GONNA CALL UNLOCK");
+      chrome.runtime.sendMessage(
+        { type: 'UNLOCK', password: password.value, salt },
+        (res) => {
+          if (chrome.runtime.lastError) {
+            console.error("Runtime error:", chrome.runtime.lastError.message);
+            errorMessage.value = "Background communication failed.";
+          } else if (res.success) {
+            console.log("Vault unlocked");
+            router.push("/welcome");
+          } else {
+            errorMessage.value = "Key derivation failed.";
+          }
+        }
+      );
+    } catch (err) {
+      errorMessage.value = "Server error.";
+      console.error(err);
     }
   } else {
     errorMessage.value = "Please fill all login inputs.";
@@ -60,9 +73,10 @@ const login = async () => {
 };
 </script>
 
+
 <template>
   <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
-    <h2 class="text-2xl font-bold mb-6 text-center">Connexion</h2>
+    <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
     <form @submit.prevent="login">
@@ -74,7 +88,7 @@ const login = async () => {
         <label for="password" class="block text-sm font-medium mb-1">Password</label>
         <input v-model="password" type="password" id="password" required class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500">
       </div>
-      <button type="submit" class="button-2">Se connecter</button>
+      <button type="submit" class="button-2">Login</button>
     </form>
   </div>
 </template>

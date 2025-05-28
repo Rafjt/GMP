@@ -94,7 +94,6 @@ body {
 /* Main Content Styling */
 .main-container {
   flex-grow: 1;
-  display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
@@ -106,6 +105,7 @@ h1 {
   font-size: 1.5rem;
   font-weight: 600;
   color: #EEEEEE;
+  padding-left:20%;
 }
 
 .login-link {
@@ -118,4 +118,9 @@ h1 {
 .login-link:hover {
   text-decoration: underline;
 }
+
+#app {
+  width: 100%;
+}
+
 </style>
