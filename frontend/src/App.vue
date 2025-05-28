@@ -105,6 +105,7 @@ h1 {
   font-size: 1.5rem;
   font-weight: 600;
   color: #EEEEEE;
+  padding-left:20%;
 }
 
 .login-link {
@@ -116,6 +117,10 @@ h1 {
 
 .login-link:hover {
   text-decoration: underline;
+}
+
+#app {
+  width: 100%;
 }
 
 </style>
