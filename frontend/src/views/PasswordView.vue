@@ -3,7 +3,9 @@ import { pullPassword, deletePassword, logout } from '../functions/general';
 import { useRouter } from 'vue-router';
 import { onMounted, ref } from 'vue';
 import { decrypt } from '@/crypto/encryption';
+import { computed } from 'vue';
 
+const searchQuery = ref('');
 const passwords = ref([]);
 const visiblePasswords = ref({});
 const router = useRouter();
@@ -23,7 +25,11 @@ const copyToClipboard = async (id, text) => {
   }
 };
 
-
+const filteredPasswords = computed(() => {
+  return passwords.value.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
 
 const handleDelete = async (id) => {
   console.log("deletion of", id);
@@ -78,11 +84,17 @@ onMounted(async () => {
     <div class="password-list">
 
       <div class="search-add">
-        <span class="text-gray-200">Search</span>
+        <input
+          v-model="searchQuery"
+          placeholder="Search by name"
+          class="search-input"
+          id="add-btn"
+        />
         <RouterLink to="/password-management" class="button">
           Add +
         </RouterLink>
       </div>
+
 
 
       <hr class="border-gray-400 mb-4" />
@@ -90,7 +102,7 @@ onMounted(async () => {
 
       <div class="pwd-elements">
         <div
-          v-for="(item, index) in passwords"
+          v-for="(item, index) in filteredPasswords"
           :key="item.id"
           class="test"
         >
@@ -120,7 +132,12 @@ onMounted(async () => {
           </button>
 
           <div class="pwd-buttons">
-            <button class="button">Edit</button>
+            <button
+              @click="() => router.push({ path: '/password-management', query: { mode: 'edit', id: item.id } })"
+              class="button"
+            >
+              Edit
+            </button>
             <button @click="handleDelete(item.id)" class="button">Delete</button>
           </div>
         </div>
@@ -197,6 +214,23 @@ onMounted(async () => {
 
 .pwd-value {
   transition: color 0.3s ease;
+}
+
+/* .search-input {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  background-color: #efefef87;
+  color: black;
+  margin-right: 1rem;
+} */
+
+#add-btn {
+  background-color: transparent;
+  color:white;
+  border:unset;
 }
 
 
