@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const PORT = 3001;
+const PORT = 2111;
 router = require('./routes/api')
 const auth = require('./routes/auth');
 const sequelize = require('./database');
@@ -12,10 +12,31 @@ const cors = require('cors');
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
-  }));
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, false);
+
+    // Allow Chrome Extensions and maybe localhost during dev
+    if (origin.startsWith('chrome-extension://') || origin.startsWith('http://localhost')) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
+
+
+// app.use((req, res, next) => {
+//   console.log('----- Incoming Request -----');
+//   console.log('Origin:', req.headers.origin);
+//   console.log('Method:', req.method);
+//   console.log('URL:', req.originalUrl);
+//   console.log('Headers:', req.headers);
+//   console.log('Body:', req.body);
+//   next();
+// });
+
 
 app.use('/api',router)
 app.use('/auth', auth);
