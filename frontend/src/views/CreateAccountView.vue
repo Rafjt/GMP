@@ -3,8 +3,9 @@ import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { isValidEmail, isValidPassword } from '../functions/FormValidation';
 import bcrypt from 'bcryptjs';
+import { API_AUTH_URL,API_BASE_URL } from "../components/constant.js";
 
-const API_BASE_URL = "http://localhost:3001/auth";
+// const API_BASE_URL = "http://localhost:3001/auth";
 
 const email = ref('');
 const password = ref('');
@@ -54,7 +55,7 @@ const registerUser = async () => {
   console.log("le password hashé:",hashedPassword);
 
   try {
-    const response = await fetch(`${API_BASE_URL}/register`, {
+    const response = await fetch(`${API_AUTH_URL}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: email.value, password: hashedPassword }),
