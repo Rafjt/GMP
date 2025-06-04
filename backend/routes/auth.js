@@ -32,7 +32,7 @@ router.post("/register", async (req, res) => {
       }
     );
 
-    const verificationLink = `http://localhost:3001/auth/verify-email?token=${verificationToken}`;
+    const verificationLink = `http://localhost:2111/auth/verify-email?token=${verificationToken}`;
     await sendMail(
       email,
       "Verify Your Email",

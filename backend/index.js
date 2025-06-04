@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const PORT = 3001;
+const PORT = 2111;
 router = require('./routes/api')
 const auth = require('./routes/auth');
 const sequelize = require('./database');
