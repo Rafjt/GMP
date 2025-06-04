@@ -15,6 +15,7 @@ router.get("/about", (req, res) => {
 });
 
 router.post("/register", async (req, res) => {
+  console.log("-- DEBUG : REGISTER HAS BEEN CALLED --")
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -32,7 +33,7 @@ router.post("/register", async (req, res) => {
       }
     );
 
-    const verificationLink = `http://localhost:3001/auth/verify-email?token=${verificationToken}`;
+    const verificationLink = `http://51.210.151.154:2111/auth/verify-email?token=${verificationToken}`;
     await sendMail(
       email,
       "Verify Your Email",
@@ -125,7 +126,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign({ id, login }, SECRET_KEY, { expiresIn: "1h" });
 
-    res.cookie('token', token, { httpOnly: true, sameSite: 'Strict', maxAge: 3600000 }); // 1 hour > rajouter le secure: true , httpOnly: true,en prod
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'None', maxAge: 3600000 }); // 1 hour > rajouter le secure: true , httpOnly: true,en prod
 
     res.json({ message: "Login successful", token });
   } catch (error) {
