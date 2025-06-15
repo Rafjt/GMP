@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "helmet": "^8.1.0",
     "ts-node": "^10.9.2",
     "tsc": "^2.0.4"
   }
