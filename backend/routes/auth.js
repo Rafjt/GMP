@@ -23,8 +23,7 @@ router.post("/register", async (req, res) => {
   }
 
   try {
-    const verificationToken = crypto.randomBytes(32).toString("hex"); // Generate token
-// rajouter le salt dans les colonnes de création 
+    const verificationToken = crypto.randomBytes(32).toString("hex");
     await sequelize.query(
       "INSERT INTO rrpm_user (login, hashed_master_password, is_verified, verification_token) VALUES (:email, :password, FALSE, :verificationToken);",
       {
