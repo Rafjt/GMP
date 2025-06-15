@@ -6,8 +6,9 @@ const auth = require('./routes/auth');
 const sequelize = require('./database');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const helmet = require('helmet');
 // const bodyParser = require('body-parser');
-
+app.use(helmet());
 // Middleware to parse JSON
 app.use(express.json());
 app.use(cookieParser());
