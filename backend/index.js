@@ -12,20 +12,39 @@ app.use(helmet());
 // Middleware to parse JSON
 app.use(express.json());
 app.use(cookieParser());
+// OG
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     if (!origin) return callback(null, false);
+
+//     // Allow Chrome Extensions and maybe localhost during dev
+//     if (origin.startsWith('chrome-extension://') || origin.startsWith('http://localhost')) {
+//       return callback(null, true);
+//     }
+
+//     return callback(new Error('Not allowed by CORS'));
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE']
+// })); 
+
+// REVAMP
+const allowedOrigins = [
+  'chrome-extension://gihknlfgpmgeghooohdfheejepjmofao'
+];
+
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, false);
-
-    // Allow Chrome Extensions and maybe localhost during dev
-    if (origin.startsWith('chrome-extension://') || origin.startsWith('http://localhost')) {
+    if (!origin) return callback(null, false); // ou true si tu veux autoriser requêtes sans Origin (à évaluer)
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE']
+  methods: ['GET', 'POST','PUT','DELETE']
 }));
+
 
 
 // app.use((req, res, next) => {
