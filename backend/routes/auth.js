@@ -7,6 +7,7 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const sendMail = require("../mailer");
 const { QueryTypes } = require("sequelize");
+const verifyToken = require('./api')
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
@@ -192,7 +193,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get('/me', (req, res) => {
+router.get('/me', verifyToken, (req, res) => {
   // Retrieve the token from the 'token' cookie
   const token = req.cookies.token;
 
