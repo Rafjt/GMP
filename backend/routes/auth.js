@@ -8,6 +8,7 @@ const bcrypt = require("bcrypt");
 const sendMail = require("../mailer");
 const { QueryTypes } = require("sequelize");
 const verifyToken = require('./api')
+const { Limiter } = require('../functions')
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
@@ -15,7 +16,7 @@ router.get("/about", (req, res) => {
   res.send("About this app");
 });
 
-router.post("/register", async (req, res) => {
+router.post("/register", Limiter, async (req, res) => {
   console.log("-- DEBUG : REGISTER HAS BEEN CALLED --")
   const { email, password } = req.body;
 
@@ -107,7 +108,7 @@ function renderPage(message, isError = false) {
   `;
 }
 
-router.get("/verify-email", async (req, res) => {
+router.get("/verify-email", Limiter, async (req, res) => {
   const { token } = req.query;
 
   if (!token) {
@@ -154,7 +155,7 @@ router.get("/verify-email", async (req, res) => {
 });
 
 
-router.post("/login", async (req, res) => {
+router.post("/login", Limiter,async (req, res) => {
   const { email, password } = req.body;
   console.log(password);
 
