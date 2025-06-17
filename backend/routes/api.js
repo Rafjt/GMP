@@ -4,8 +4,8 @@ const router = express.Router();
 const sequelize = require("../database");
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = process.env.JWT_SECRET;
+const { Limiter } = require('../functions')
 
-// TODO: mettre la verif du token partout ou c'est nécéssaire ⌛
 
 const verifyToken = (req, res, next) => {
     const token = req.cookies.token;
@@ -111,7 +111,7 @@ router.put('/master/password/:id', verifyToken, async (req, res) => {
 
 /// ciphered passwords
 
-router.post('/ciphered/password', verifyToken, async (req, res) => {
+router.post('/ciphered/password', verifyToken, Limiter, async (req, res) => {
     const { name, password, description, url } = req.body;
     const token = req.cookies.token;
 
@@ -154,7 +154,7 @@ router.post('/ciphered/password', verifyToken, async (req, res) => {
     }
 });
 
-router.get('/ciphered/password', verifyToken, async (req, res) => {
+router.get('/ciphered/password', verifyToken, Limiter, async (req, res) => {
     const id = req.user.id; // récupéré depuis le token vérifié par le middleware
 
     try {
@@ -174,7 +174,7 @@ router.get('/ciphered/password', verifyToken, async (req, res) => {
 
 
 
-router.delete('/ciphered/password/:id', verifyToken, async (req, res) => {
+router.delete('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -192,7 +192,7 @@ router.delete('/ciphered/password/:id', verifyToken, async (req, res) => {
     }
 });
 
-router.put('/ciphered/password/:id', verifyToken, async (req, res) => {
+router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
     const { id } = req.params;
     const { name, password, description, url } = req.body;
 
