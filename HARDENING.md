@@ -20,27 +20,107 @@ Aucun accès direct en HTTP n'est permis en production, puisque l'on force le HT
 ## Backend
 
 ### Helmet 🪖
-"Le package npm helmet sert à renforcer la sécurité des applications Node.js, en particulier celles construites avec Express, en configurant automatiquement divers en-têtes HTTP liés à la sécurité. En agissant comme un middleware, Helmet protège contre des vulnérabilités web courantes telles que les attaques de type Cross-Site Scripting (XSS), le clickjacking et d'autres menaces, en définissant des en-têtes comme Content-Security-Policy, Strict-Transport-Security, X-Frame-Options, et bien d'autres. Ces en-têtes limitent par exemple les sources de scripts autorisées, imposent l'utilisation du HTTPS, ou empêchent le chargement du site dans des iframes non autorisées. Helmet est donc un outil essentiel pour améliorer la sécurité de base d'une application web Node.js, sans nécessiter de configuration complexe"
+Le package npm `helmet` sert à renforcer la sécurité des applications Node.js, en particulier celles construites avec Express, en configurant automatiquement divers en-têtes HTTP liés à la sécurité.
+Helmet protège contre des vulnérabilités web courantes telles que :
 
-### Fonctions verify token 🪙
+* les attaques XSS (Cross-Site Scripting),
+* le clickjacking,
+* les injections de contenu via les iframes,
+* ou encore les attaques basées sur les types MIME.
 
-Le middleware `verifyToken` assure la sécurité des routes privées de l’API en validant la présence et l’intégrité du token JWT transmis dans les cookies `(HttpOnly)`. Il vérifie que le token est bien signé avec la clé secrète du serveur, qu’il n’est pas expiré, et qu’il n’a pas été altéré. En cas d’échec, il bloque immédiatement l’accès à la route et renvoie une réponse d’erreur adaptée (`401` ou `500`). Lorsqu’un token est valide, les données qu’il contient (ex. : identifiant de l’utilisateur) sont automatiquement ajoutées à l’objet `req.user`, ce qui permet de sécuriser la logique applicative en aval. Ce middleware est une brique essentielle pour garantir que seuls les utilisateurs authentifiés peuvent interagir avec les routes sensibles de l’API.
+Les principaux headers configurés incluent `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, etc.
+Helmet est un outil fondamental pour durcir la surface d'attaque d’une API REST.
+
+### verifyToken 🪙 – Middleware JWT
+
+Le middleware `verifyToken` protège les routes sensibles de l'API en validant les jetons JWT transmis dans les cookies **`HttpOnly`**.
+
+Fonctionnement :
+
+* Vérifie la présence du cookie `token`
+* Décode le token avec la clé secrète
+* S’assure qu’il n’est **pas expiré** ou altéré
+* Injecte automatiquement les infos (`id`, `login`, etc.) dans `req.user`
+* En cas d’échec, la requête est bloquée avec un code **`401 Unauthorized`**
+
+C’est une mesure essentielle pour garantir que seuls les utilisateurs authentifiés peuvent accéder à certaines routes (accès aux mots de passe chiffrés, modification, suppression, etc.).
+
+---
 
 ### Cors policy strict ✅
 
-Nos cors policy n'autorise que le stric minimum à savoir seulement les requêtes venant de notre extension et seulement les requêtes nécéssaire
+Nous avons appliqué une **politique CORS minimale** :
 
-### Rate Limiting 🚦
+* Seules les requêtes issues de **l'extension Chrome** (frontend) sont autorisées.
+* Les méthodes permises sont uniquement celles utilisées dans l’application (`GET`, `POST`, `PUT`, `DELETE`).
+* Les headers autorisés sont strictement contrôlés.
+* Les credentials (`cookies`) sont autorisés pour permettre le transport du token JWT sécurisé.
 
-Nos fonction sont protégées par la fonction `Limiter` cette fonctions limite à `5` requêtes `par requête` et `par minute` chaque `IP` et donc `utilisateurs`.
+Cela permet de **bloquer toutes les requêtes provenant d'autres domaines** (API publiques, scripts malveillants, etc.).
 
-### Hardening SQL
+---
 
-Next move : vérifier la solidité des appel à la bdd
+### Limiter 🧱 – Middleware anti-bruteforce
+
+Un middleware de type **rate limiter** est utilisé sur **toutes les routes critiques** comme :
+
+* `POST /login`
+* `POST /register`
+* `GET /verify-email`
+
+Cela permet :
+
+* de **limiter les tentatives par IP** (ex: 5 tentatives/minute),
+* d'éviter les attaques par force brute,
+* de prévenir le spam ou l’exploitation des endpoints publics.
+
+### Sécurité des routes API 🔐
+
+Chaque route sensible respecte une politique stricte :
+
+#### ✅ Vérification de propriété utilisateur :
+
+Avant toute suppression/modification de mot de passe chiffré :
+
+* une requête SQL vérifie que la ressource (mot de passe) appartient bien à l’utilisateur (`user_id = req.user.id`),
+* sinon, la requête est rejetée avec une **404** ou **403**.
+
+#### ✅ Gestion d’erreurs personnalisée :
+
+Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
+
+* "Invalid credentials" pour éviter de savoir si l’email est correct.
+* "Account not verified" en cas de login avant validation.
+
+---
+
+### Authentification sécurisée 🔑
+
+#### Login
+
+* Comparaison du mot de passe haché avec **bcrypt**
+* Renvoi d’un token JWT signé (durée : 1h)
+* Stockage dans un cookie **HttpOnly**, **secure**, **sameSite: 'Strict'** (prod)
+
+#### Register
+
+* Création d’un utilisateur en base avec :
+
+  * champ `is_verified = false`
+  * token de vérification aléatoire (hex)
+* Envoi d’un mail avec un lien de vérification
+
+#### Email Verification
+
+* Vérifie que le token correspond à un utilisateur existant
+* Ignore les vérifications multiples
+* Marque l’email comme vérifié et génère un `salt` unique (base64)
+
+---
 
 ## Frontend 
 
 ### Validation des données
 
-Next move : valider les input utilisateurs et tout type d'attaque
+Next move : valider les input utilisateurs et tout type d'attaque (checker les outils joi, dompurify, validator)
 

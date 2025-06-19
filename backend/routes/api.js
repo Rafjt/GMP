@@ -34,8 +34,6 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// module.exports = verifyToken;
-
 
 app.use('/api', router);
 
@@ -45,26 +43,9 @@ router.get('/about', (req, res) => {
 
 // Users routes
 
-// Route qui semble être déprecier à confirmer
-// router.get('/all_user', async (req, res) => {
-//     try {
-//         const response = await sequelize.query(
-//           `SELECT * FROM rrpm_user`
-//         );
-//         res.json(response[0]);
-//     } catch (error) {
-//         console.error('Error:', error);
-//         res.status(500).json({error: 'Internal server error'});
-//     }
-// });
 
-
-router.get('/get_salt', verifyToken , async (req, res) => {
+router.get('/get_salt', verifyToken , async (req, res) => {  
   const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
@@ -74,6 +55,11 @@ router.get('/get_salt', verifyToken , async (req, res) => {
       'SELECT salt FROM rrpm_user WHERE id = :id',
       { replacements: {id} }
     );
+    
+    if (!response[0] || response[0].length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
     res.json(response[0]);
   } catch (error) {
     console.error('Error:', error);
@@ -85,7 +71,8 @@ router.get('/get_salt', verifyToken , async (req, res) => {
 // Master password route
 
 // utiliser cette route dans le front
-router.put('/master/password/:id', verifyToken, async (req, res) => {
+// ⚠️ Pas le meilleur mouv mettre l'id en PARAMS
+router.put('/master/password/:id', verifyToken, async (req, res) => { // ❌ À corriger pour implem
     const { id } = req.params;
     const { password } = req.body;
      const token = req.cookies.token;
@@ -111,13 +98,9 @@ router.put('/master/password/:id', verifyToken, async (req, res) => {
 
 /// ciphered passwords
 
-router.post('/ciphered/password', verifyToken, Limiter, async (req, res) => {
+router.post('/ciphered/password', verifyToken, Limiter, async (req, res) => { 
     const { name, password, description, url } = req.body;
     const token = req.cookies.token;
-
-    if (!token) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
 
     try {
         const decoded = jwt.verify(token, SECRET_KEY);
@@ -154,8 +137,12 @@ router.post('/ciphered/password', verifyToken, Limiter, async (req, res) => {
     }
 });
 
-router.get('/ciphered/password', verifyToken, Limiter, async (req, res) => {
+router.get('/ciphered/password', verifyToken, async (req, res) => { 
     const id = req.user.id; // récupéré depuis le token vérifié par le middleware
+
+    if (!id) {
+        return res.status(404).json({ error: 'User id not found in request' });
+    }
 
     try {
         const response = await sequelize.query(
@@ -172,37 +159,63 @@ router.get('/ciphered/password', verifyToken, Limiter, async (req, res) => {
     }
 });
 
+router.delete('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => { 
+  const { id } = req.params;
+  const userId = req.user.id;
 
+  try {
+    // 1. Check if the password belongs to the user
+    const existing = await sequelize.query(
+      'SELECT id FROM cipher_passwords WHERE id = :id AND user_id = :userId',
+      {
+        replacements: { id, userId },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
 
-router.delete('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const response = await sequelize.query(
-            'DELETE FROM cipher_passwords WHERE id = :id',
-            {
-                replacements: { id },
-                type: sequelize.QueryTypes.DELETE
-            }
-        );
-        res.json({ message: 'Password deleted successfully' });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Password not found or not owned by user' });
     }
+
+    // 2. Perform the delete
+    await sequelize.query(
+      'DELETE FROM cipher_passwords WHERE id = :id AND user_id = :userId',
+      {
+        replacements: { id, userId },
+        type: sequelize.QueryTypes.DELETE
+      }
+    );
+
+    // Optional: log the deletion
+    console.log(`User ${userId} deleted password ${id} at ${new Date().toISOString()}`);
+
+    res.json({ message: 'Password deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting password:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
+
+router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => { 
     const { id } = req.params;
+    const userId = req.user.id;
     const { name, password, description, url } = req.body;
 
-    const token = req.cookies.token;
-
-    if (!token) {
-        return res.status(401).json({ error: 'No token provided' });
-    }
-
     try {
+        const existing = await sequelize.query(
+            'SELECT id FROM cipher_passwords WHERE id = :id AND user_id = :userId',
+            {
+                replacements: { id, userId },
+                type: sequelize.QueryTypes.SELECT
+            }
+        );
+
+        if (existing.length === 0) {
+            return res.status(404).json({ error: 'Password not found or not owned by user' });
+        }
+
         let query = 'UPDATE cipher_passwords SET value = :password';
         let replacements = { password, id };
 
@@ -210,7 +223,7 @@ router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
             query += ', name = :name';
             replacements.name = name;
         }
-        
+
         if (description) {
             query += ', description = :description';
             replacements.description = description;
@@ -221,13 +234,16 @@ router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
             replacements.url = url;
         }
 
-
         query += ' WHERE id = :id';
 
-        const response = await sequelize.query(query, {
+        const [result] = await sequelize.query(query, {
             replacements,
             type: sequelize.QueryTypes.UPDATE
         });
+
+        if (result === 0) {
+            return res.status(200).json({ message: 'No changes applied (data may be identical)' });
+        }
 
         res.json({ message: 'Password updated successfully' });
     } catch (error) {
@@ -235,5 +251,6 @@ router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 
 module.exports = router; 

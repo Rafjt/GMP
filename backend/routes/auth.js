@@ -9,7 +9,7 @@ const sendMail = require("../mailer");
 const { QueryTypes } = require("sequelize");
 const verifyToken = require('./api')
 const { Limiter } = require('../functions')
-
+const validator = require("validator");
 const SECRET_KEY = process.env.JWT_SECRET;
 
 router.get("/about", (req, res) => {
@@ -17,42 +17,66 @@ router.get("/about", (req, res) => {
 });
 
 router.post("/register", Limiter, async (req, res) => {
-  console.log("-- DEBUG : REGISTER HAS BEEN CALLED --")
+  console.log("-- DEBUG : REGISTER HAS BEEN CALLED --");
+
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: "Email, and password are required" });
+    return res.status(400).json({ error: "Email and hashed password are required." });
+  }
+
+  if (!validator.isEmail(email)) {
+    return res.status(400).json({ error: "Invalid email format." });
   }
 
   try {
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    await sequelize.query(
-      "INSERT INTO rrpm_user (login, hashed_master_password, is_verified, verification_token) VALUES (:email, :password, FALSE, :verificationToken);",
+    // Vérifie si un utilisateur avec cet email existe déjà
+    const existingUser = await sequelize.query(
+      "SELECT id FROM rrpm_user WHERE login = :email",
       {
-        replacements: { email, password, verificationToken },
+        replacements: { email },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({ error: "Email already registered." });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+
+    await sequelize.query(
+      `INSERT INTO rrpm_user 
+        (login, hashed_master_password, is_verified, verification_token) 
+       VALUES 
+        (:email, :password, FALSE, :verificationToken);`,
+      {
+        replacements: {
+          email,
+          password,
+          verificationToken,
+        },
         type: sequelize.QueryTypes.INSERT,
       }
     );
 
+    // Remplace par le domaine réel de ton API
     const verificationLink = `http://51.210.151.154:2111/auth/verify-email?token=${verificationToken}`;
+
     await sendMail(
       email,
       "Verify Your Email",
-      `Click the link to verify your email: ${verificationLink}`,
-      null
+      `Click the link to verify your email: ${verificationLink}`
     );
 
-    res
-      .status(201)
-      .json({
-        message: "User registered. Please verify your email before logging in.",
-      });
+    return res.status(201).json({
+      message: "User registered. Please verify your email before logging in.",
+    });
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 // ✅ Utility function to render a simple styled HTML page
 function renderPage(message, isError = false) {
@@ -111,13 +135,13 @@ function renderPage(message, isError = false) {
 router.get("/verify-email", Limiter, async (req, res) => {
   const { token } = req.query;
 
-  if (!token) {
-    return res.status(400).send(renderPage("Invalid or missing token", true));
+  if (!token || typeof token !== "string" || token.length < 32) {
+    return res.status(400).send(renderPage("Invalid or missing verification token", true));
   }
 
   try {
     const [user] = await sequelize.query(
-      "SELECT id FROM rrpm_user WHERE verification_token = :token;",
+      `SELECT id, is_verified FROM rrpm_user WHERE verification_token = :token;`,
       {
         replacements: { token },
         type: sequelize.QueryTypes.SELECT,
@@ -130,17 +154,20 @@ router.get("/verify-email", Limiter, async (req, res) => {
         .send(renderPage("Invalid or expired verification token", true));
     }
 
-    const salt = crypto.randomBytes(16).toString("base64");
+    if (user.is_verified) {
+      return res
+        .status(200)
+        .send(renderPage("✅ Email already verified. You can now log in."));
+    }
+
+    const salt = crypto.randomBytes(16).toString("base64"); // ou 'hex' si utilisé côté front
 
     await sequelize.query(
-      `
-      UPDATE rrpm_user
-      SET
-        is_verified = TRUE,
-        verification_token = NULL,
-        salt = :salt
-      WHERE id = :id;
-      `,
+      `UPDATE rrpm_user
+       SET is_verified = TRUE,
+           verification_token = NULL,
+           salt = :salt
+       WHERE id = :id;`,
       {
         replacements: { id: user.id, salt },
         type: sequelize.QueryTypes.UPDATE,
@@ -149,15 +176,19 @@ router.get("/verify-email", Limiter, async (req, res) => {
 
     return res.send(renderPage("✅ Email verified successfully. You can now log in."));
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).send(renderPage("Internal server error", true));
+    console.error("Email verification error:", error);
+    return res.status(500).send(renderPage("Internal server error", true));
   }
 });
 
 
-router.post("/login", Limiter,async (req, res) => {
+router.post("/login", Limiter, async (req, res) => {
   const { email, password } = req.body;
-  console.log(password);
+
+  // Vérification des champs
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
 
   try {
     const user = await sequelize.query(
@@ -169,7 +200,8 @@ router.post("/login", Limiter,async (req, res) => {
     );
 
     if (user.length === 0) {
-      return res.status(401).json({ message: "User not found" });
+      // On ne précise pas si c’est l’email ou le mdp
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const { id, login, hashed_master_password, is_verified } = user[0];
@@ -185,7 +217,12 @@ router.post("/login", Limiter,async (req, res) => {
 
     const token = jwt.sign({ id, login }, SECRET_KEY, { expiresIn: "1h" });
 
-    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'None', maxAge: 3600000 }); // 1 hour > rajouter le secure: true , httpOnly: true,en prod
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 3600000,
+    });
 
     res.json({ message: "Login successful", token });
   } catch (error) {
@@ -194,7 +231,8 @@ router.post("/login", Limiter,async (req, res) => {
   }
 });
 
-router.get('/me', verifyToken, (req, res) => {
+
+router.get('/me', verifyToken,(req, res) => {
   // Retrieve the token from the 'token' cookie
   const token = req.cookies.token;
 
@@ -216,8 +254,15 @@ router.get('/me', verifyToken, (req, res) => {
 
 
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  console.log("--- DEBUG : LOGOUT CALLED ---");
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: true, // if used in cookie creation
+    sameSite: 'None',
+  });
+  res.setHeader('X-Debug-Logout', 'Token cookie cleared');
   res.json({ message: 'Logged out' });
 });
+
 
 module.exports = router;
