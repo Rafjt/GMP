@@ -120,6 +120,12 @@ Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
 
 ## Frontend 
 
+### Manifest.json
+
+#### content_security_policy
+
+A expliquer...
+
 ### Validation des données
 
 Next move : valider les input utilisateurs et tout type d'attaque (checker les outils joi, dompurify, validator)
