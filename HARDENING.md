@@ -120,8 +120,6 @@ Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
 
 ## Frontend
 
-
-
 ### Manifest.json
 
 #### `content_security_policy`
@@ -149,6 +147,11 @@ Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
 
 
 ---
+### Register
+
+- Validation des données via une `regex` peu permissive 
+- protection des messages d'erreur via `Dompurify`
+
 
 ### Validation des données
 
