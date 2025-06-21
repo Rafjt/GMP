@@ -1,41 +1,15 @@
 <script setup>
-import { RouterView, RouterLink } from 'vue-router'
-import { onMounted, ref, onUnmounted } from 'vue'
+import { RouterView, RouterLink } from 'vue-router';
+import { useAuth } from './composables/useAuth';
 
-const authState = ref(false);
-
-const getAuthState = () => {
-  chrome.storage.sync.get(['state'], function (result) {
-    console.log('Retrieved value:', result.state);
-    authState.value = result.state;
-  });
-};
-
-onMounted(() => {
-  getAuthState();
-
-  // Listen to changes in chrome.storage
-  chrome.storage.onChanged.addListener(handleStorageChange);
-});
-
-onUnmounted(() => {
-  chrome.storage.onChanged.removeListener(handleStorageChange);
-});
-
-function handleStorageChange(changes, namespace) {
-  if (namespace === "sync" && changes.state) {
-    console.log("Storage changed: ", changes.state.newValue);
-    authState.value = changes.state.newValue;
-  }
-}
+const { isAuthenticated } = useAuth();
 </script>
-
 
 <template>
   <h1>Welcome to RRPM !👋</h1>
   <header class="header-container">
     <div class="header-content">
-      <nav v-if="authState">
+      <nav v-if="isAuthenticated">
         <RouterLink to="/password" class="login-link">Your passwords</RouterLink>
         <br>
         <RouterLink to="/password-generator" class="login-link">Password generator</RouterLink>
@@ -54,6 +28,7 @@ function handleStorageChange(changes, namespace) {
     <RouterView />
   </main>
 </template>
+
 
 
 
