@@ -111,4 +111,14 @@
   font-weight: bold;
   margin-bottom: 10px;
 }
+
+.strength {
+  color: white;
+  padding-bottom: 5%;
+}
   
+.pwd-reqiurements {
+  color: white;
+  background: rgba(3,13,68,1) ;
+  padding: 1%;
+}
