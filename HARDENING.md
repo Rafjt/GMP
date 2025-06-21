@@ -118,13 +118,37 @@ Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
 
 ---
 
-## Frontend 
+## Frontend
+
+
 
 ### Manifest.json
 
-#### content_security_policy
+#### `content_security_policy`
 
-A expliquer...
+```json
+"content_security_policy": {
+  "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://rrpm.site/*"
+}
+````
+
+#### 🔒 Mesures de sécurité appliquées
+
+| Directive                                | Rôle                                                                 | Sécurité apportée                                               |
+| ---------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `script-src 'self'`                      | N'autorise que les scripts internes à l’extension.                   | Protège contre les attaques XSS (Cross-Site Scripting).         |
+| `object-src 'none'`                      | Interdit le chargement de balises `<object>`, `<embed>`, `<applet>`. | Supprime les vecteurs d'attaque via anciens formats ou plugins. |
+| `base-uri 'none'`                        | Interdit la balise `<base>` qui altère la résolution des URL.        | Empêche la réécriture malveillante des chemins relatifs.        |
+| `connect-src 'self' https://rrpm.site/*` | N'autorise les requêtes réseau qu’à l’API du serveur.                | Empêche les fuites de données vers des hôtes non autorisés.     |
+
+#### ✅ Objectifs de cette configuration
+
+* 🔐 **Réduction de la surface d’attaque** en bloquant tous les scripts et connexions non explicitement autorisés.
+* 🚫 **Prévention du code dynamique ou injecté**, limitant drastiquement les risques de compromission.
+* 🧱 **Verrouillage strict des origines de communication** avec le backend de l’application (`https://rrpm.site` uniquement).
+
+
+---
 
 ### Validation des données
 

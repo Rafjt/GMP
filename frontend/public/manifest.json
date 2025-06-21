@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "permissions": ["cookies", "storage","tabs"],
+    "permissions": ["cookies", "storage"],
     "host_permissions": ["https://rrpm.site/*"],
     "name": "RRPM",
     "description": "Chez vous, au travail, n'importe où, RRPM sécurise mots de passe, clés d'accès et informations sensibles",

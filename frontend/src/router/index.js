@@ -6,14 +6,16 @@ import CreateAccountView from '@/views/CreateAccountView.vue';
 import PasswordView from '@/views/PasswordView.vue';
 import PasswordGeneratorView from '@/views/PasswordGeneratorView.vue';
 import PasswordManageView from '@/views/PasswordManageView.vue';
+import { refreshAuth } from '@/composables/useAuth';
 
 const routes = [
   { path: '/login', component: LoginView },
   { path: '/logout', component: LogoutView },
   { path: '/create', component: CreateAccountView },
-  { path: '/password', component: PasswordView},
-  { path: '/password-generator', component: PasswordGeneratorView },
-  { path: '/password-management', component: PasswordManageView }
+  { path: '/password', component: PasswordView, meta: { requiresAuth: true } },
+  { path: '/password-generator', component: PasswordGeneratorView, meta: { requiresAuth: true } },
+  { path: '/password-management', component: PasswordManageView, meta: { requiresAuth: true } },
+  { path: '/', redirect: '/login' } // Redirection par défaut
 ];
 
 const router = createRouter({
@@ -23,26 +25,10 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   console.log('route guard triggered');
-  
-  const isAuthenticated = await checkMe();
-  console.log('isAuthenticated:', isAuthenticated);
 
-  // // Log the current route (where they are coming from)
-  // console.log('User is coming from:', from.fullPath); // or from.path, from.name
-
-  // // Log the destination route
-  // console.log('User is navigating to:', to.fullPath); // or to.path, to.name
-
-  // Access the 'authenticated' property
-  const authState = isAuthenticated.authenticated;
-
-  // Store the true/false value in Chrome storage
-  chrome.storage.sync.set({ 'state': authState }, function() {
-    console.log('Value is set to:', authState);
-  });
-
+  await refreshAuth(); // met à jour isAuthenticated et chrome.storage.sync
   next();
 });
 
-export default router;
 
+export default router;
