@@ -186,3 +186,12 @@ Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
 | **Redirection forcée sans contrôle**   | `router.push('/home')` ou `/login` déclenchés manuellement et explicitement | Empêche une redirection injectée par URL ou manipulation externe         |
 
 ### Service worker 🥷👷‍♂️
+
+| Type de mitigation              | Détail                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| **Filtrage du sender**          | `sender.id === chrome.runtime.id`                                      |
+| **Validation du message**       | Types de message whitelistés                                           |
+| **Fonctions isolées**           | Une par type de message                                                |
+| **Journalisation contrôlée**    | `console.warn` pour anomalies, pas d’exfiltration de données sensibles |
+| **Centralisation des réponses** | Via `respond()`                                                        |
+| **Cache contrôlé**              | La clé est stockée uniquement en mémoire, jamais en `storage`          |
