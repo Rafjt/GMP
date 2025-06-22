@@ -119,23 +119,41 @@ async function logout() {
 }
 
 function generatePassword(length, useNumbers = true, useSymbols = true) {
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
-    const symbols = '!@#$%^&*()_+[]{}|;:,.<>?';
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*()_+[]{}|;:,.<>?';
+
+  let charset = lowercase + uppercase;
+  const mandatory = [];
   
-    // Construction du charset selon les options
-    let charset = lowercase + uppercase;
-    if (useNumbers) charset += numbers;
-    if (useSymbols) charset += symbols;
-  
-    const array = new Uint32Array(length);
-    window.crypto.getRandomValues(array);
-  
-    return Array.from(array)
-      .map(x => charset[x % charset.length])
-      .join('');
+  if (useNumbers) {
+    charset += numbers;
+    mandatory.push(numbers[Math.floor(Math.random() * numbers.length)]);
   }
+  if (useSymbols) {
+    charset += symbols;
+    mandatory.push(symbols[Math.floor(Math.random() * symbols.length)]);
+  }
+
+  mandatory.push(
+    lowercase[Math.floor(Math.random() * lowercase.length)],
+    uppercase[Math.floor(Math.random() * uppercase.length)]
+  );
+
+  const remainingLength = length - mandatory.length;
+  const array = new Uint32Array(remainingLength);
+  window.crypto.getRandomValues(array);
+
+  const password = Array.from(array)
+    .map(x => charset[x % charset.length])
+    .concat(mandatory)
+    .sort(() => Math.random() - 0.5) // Shuffle
+    .join('');
+
+  return password;
+}
+
 
 async function loginUser(email, password) {
     try {
