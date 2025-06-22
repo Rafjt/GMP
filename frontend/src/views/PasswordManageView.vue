@@ -4,12 +4,15 @@ import { useRouter, useRoute } from 'vue-router'
 import { createPassword, updatePassword, pullPassword } from '../functions/general'
 import { encrypt, decrypt } from '@/crypto/encryption'
 import { isValidPassword } from '@/functions/FormValidation'
+import DOMPurify from 'dompurify'
 
 const name = ref('')
 const value = ref('')
 const description = ref('')
 const url = ref('')
 const isLoading = ref(false)
+const passwordError = ref('');
+const clean = (val) => DOMPurify.sanitize(val || '')
 
 const router = useRouter()
 const route = useRoute()
@@ -43,14 +46,27 @@ const initCreatePassword = async () => {
   isLoading.value = true
 
   try {
+    
+    passwordError.value = ''; // clear previous error
+    if (!isValidPassword(value.value)) {
+      passwordError.value = "Password is too weak or invalid.";
+      isLoading.value = false;
+      return;
+    }
+
     const encrypted = await encrypt(value.value)
+
+    const cleanName = clean(name.value)
+    const cleanDesc = clean(description.value)
+    const cleanUrl = clean(url.value)
 
     let result
     if (mode.value === 'edit') {
-      result = await updatePassword(passwordId.value, name.value, encrypted, description.value, url.value)
+      result = await updatePassword(passwordId.value, cleanName, encrypted, cleanDesc, cleanUrl)
     } else {
-      result = await createPassword(name.value, encrypted, description.value, url.value)
+      result = await createPassword(cleanName, encrypted, cleanDesc, cleanUrl)
     }
+
 
     if (result && !result.error) {
       setTimeout(() => router.push("/password"), 100)
@@ -93,6 +109,7 @@ const initCreatePassword = async () => {
           class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
         />
       </div>
+      <div v-if="passwordError" class="customErrors">{{ passwordError }}</div>
 
       <div class="mb-4">
         <label for="description" class="block text-sm font-medium mb-1">Description</label>
