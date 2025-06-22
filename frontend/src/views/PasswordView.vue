@@ -1,71 +1,80 @@
 <script setup>
 import { pullPassword, deletePassword, logout } from '../functions/general';
 import { useRouter } from 'vue-router';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { decrypt } from '@/crypto/encryption';
-import { computed } from 'vue';
+import DOMPurify from 'dompurify';
 
 const searchQuery = ref('');
 const passwords = ref([]);
 const visiblePasswords = ref({});
-const router = useRouter();
 const copiedStatus = ref({});
+const autoHideTimers = new Map();
+const errorMessage = ref('');
+const router = useRouter();
 
 const copyToClipboard = async (id, text) => {
   try {
     await navigator.clipboard.writeText(text);
     copiedStatus.value[id] = true;
 
+    // Supprime le mot de passe de l'état après copie
+    const item = passwords.value.find(p => p.id === id);
+    if (item) item.value = 'Copied!';
 
     setTimeout(() => {
       copiedStatus.value[id] = false;
     }, 1500);
   } catch (err) {
     console.error("Failed to copy to clipboard:", err);
+    errorMessage.value = DOMPurify.sanitize("Failed to copy to clipboard");
   }
 };
 
-const filteredPasswords = computed(() => {
-  return passwords.value.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
-});
-
 const handleDelete = async (id) => {
-  console.log("deletion of", id);
   await deletePassword(id);
   passwords.value = passwords.value.filter(item => item.id !== id);
 };
 
 const toggleVisibility = (id) => {
   visiblePasswords.value[id] = !visiblePasswords.value[id];
+
+  // Si on affiche, on cache automatiquement après 10 secondes
+  if (visiblePasswords.value[id]) {
+    clearTimeout(autoHideTimers.get(id));
+    const timer = setTimeout(() => {
+      visiblePasswords.value[id] = false;
+    }, 10000);
+    autoHideTimers.set(id, timer);
+  }
 };
+
+const filteredPasswords = computed(() =>
+  passwords.value.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+);
 
 onMounted(async () => {
   const data = await pullPassword();
-  if (data?.error) return console.error(data.error);
+  if (data?.error) {
+    errorMessage.value = DOMPurify.sanitize("Error when loading passwords");
+    return console.error(data.error);
+  }
 
   try {
     const decryptedPasswords = await Promise.all(
       data.map(async (item) => {
-        const cipherText = item.value;
         try {
-          const plainText = await decrypt(cipherText);
-          return {
-            ...item,
-            value: plainText
-          };
+          const plainText = await decrypt(item.value);
+          return { ...item, value: plainText };
         } catch (err) {
-          console.error(`Failed to decrypt password with id ${item.id}:`, err);
+          console.error(`Failed to decrypt password ${item.id}:`, err);
           if (err.message === "Key is missing.") {
-            console.warn("Key is missing, logging out user.");
             logout();
             router.push('/login');
           }
-          return {
-            ...item,
-            value: "[DECRYPTION FAILED]"
-          };
+          return { ...item, value: "[DECRYPTION FAILED]" };
         }
       })
     );
@@ -73,15 +82,18 @@ onMounted(async () => {
     passwords.value = decryptedPasswords;
   } catch (error) {
     console.error("Error decrypting passwords:", error);
+    errorMessage.value = DOMPurify.sanitize("An error occurred while decrypting passwords.");
   }
 });
 </script>
 
-
-
 <template>
   <div class="main-container">
     <div class="password-list">
+
+      <div v-if="errorMessage" class="customErrors mb-4">
+        {{ errorMessage }}
+      </div>
 
       <div class="search-add">
         <input
@@ -233,5 +245,17 @@ onMounted(async () => {
   border:unset;
 }
 
+.customErrors {
+  color: #f87171; /* rouge clair */
+  background-color: rgba(255, 0, 0, 0.1);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.pwd-value {
+  transition: color 0.3s ease;
+  user-select: none; /* Empêche la sélection par l'utilisateur */
+  pointer-events: auto;
+}
 
   </style>

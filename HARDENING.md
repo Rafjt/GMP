@@ -147,13 +147,42 @@ Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
 
 
 ---
-### Register
+### Register/login
 
-- Validation des données via une `regex` peu permissive 
-- protection des messages d'erreur via `Dompurify`
+| **Type de Risque**                | **Mitigation Appliquée**                                                     | **Description**                                                                                    |
+| --------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **XSS (Cross-Site Scripting)**    | Utilisation de `DOMPurify` pour afficher les messages d'erreur               | Assainit les messages d'erreur pour éviter l'injection de code HTML ou JavaScript                  |
+| **Brute force**                   | Aucun accès explicite dans le code, mais pourrait être atténué côté serveur  | Attente progressive ou limitation serveur recommandée (non visible dans le code frontend)          |
+| **Injection de code malveillant** | `DOMPurify` + absence de rendu direct de champs sensibles                    | Empêche tout rendu d’entrée utilisateur sans nettoyage                                             |
+| **Session / JWT compromise**      | Clé de chiffrement requise (implicite dans `decrypt()` après login)          | Le frontend attend une clé valide (probablement stockée temporairement en mémoire/session)         |
+| **Redirection forcée**            | Redirection sécurisée manuelle via `router.push('/home')` après login réussi | Empêche les redirections non contrôlées post-authentication                                        |
+| **Feedback utilisateur**          | Messages de retour explicites mais assainis                                  | Empêche de donner des indices sur la validité d'un identifiant spécifique (ex. email non existant) |
 
+---
+### Password View 👁️
 
-### Validation des données
+| **Type de Risque**                        | **Mitigation Appliquée**                                               | **Description**                                                                        |
+| ----------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **XSS (Cross-Site Scripting)**            | `DOMPurify` pour les messages d'erreur utilisateur                     | Empêche l'injection de scripts via les messages affichés à l'écran                     |
+| **Vol visuel de mot de passe**            | Masquage par défaut + Affichage limité dans le temps (10s)             | Empêche un mot de passe d’être visible indéfiniment dans l’interface                   |
+| **Persistance en mémoire**                | Suppression du mot de passe après copie                                | Évite que le mot de passe reste accessible dans le DOM ou en mémoire inutilement       |
+| **Social engineering / shoulder surfing** | Affichage partiel avec bullet points `•••` + bouton `Show`             | Réduction du risque d'exposition visuelle accidentelle ou involontaire                 |
+| **Clipboard hijacking**                   | Timeout visuel `✅ Copied!` + pas de retour du mot de passe après copie | L’utilisateur n’est pas incité à coller dans des zones à risque (ex : forums, emails…) |
+| **Clickjacking / sélection involontaire** | `user-select: none` sur les valeurs de mot de passe                    | Empêche la sélection et copie involontaire (hors clic explicite)                       |
+| **Accès non autorisé (clé manquante)**    | Déconnexion + redirection automatique en cas d’échec de déchiffrement  | Prévention d’un état incohérent ou d’une session invalide dans le navigateur           |
+| **Injection dans la recherche**           | Recherche en `toLowerCase()` avec `includes()`                         | Empêche les injections HTML/JS, même si champ de recherche maltraité                   |
 
-Next move : valider les input utilisateurs et tout type d'attaque (checker les outils joi, dompurify, validator)
+---
+### Password Manage View 🔧
 
+| **Type de Risque**                     | **Mitigation Appliquée**                                                    | **Description**                                                          |
+| -------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **XSS (Cross-Site Scripting)**         | `DOMPurify` utilisé pour tous les messages d'erreur                         | Empêche les entrées malicieuses de s’exécuter dans l’UI                  |
+| **Faille de type DOM-based XSS**       | Aucun rendu direct de données utilisateurs dans le DOM sans contrôle        | Pas d’`innerHTML`, aucun contenu injecté dynamiquement en HTML pur       |
+| **Fuite de mot de passe**              | Données encryptées avant stockage (présumé via `encrypt()` non montré ici)  | Le mot de passe est chiffré côté client avant tout envoi serveur         |
+| **Injection HTML dans les champs**     | Les valeurs affichées sont statiques, non rendues comme HTML                | Même si un champ contenait `<script>`, il ne serait pas interprété       |
+| **Altération d’un mot de passe tiers** | Mode `edit` strictement conditionné à un `id` fourni                        | Prévient les modifications arbitraires si aucun identifiant n’est fourni |
+| **Manque de feedback utilisateur**     | Messages d’erreurs clairs et visuellement encadrés                          | L’utilisateur est bien informé des erreurs, sans fuite technique         |
+| **Redirection forcée sans contrôle**   | `router.push('/home')` ou `/login` déclenchés manuellement et explicitement | Empêche une redirection injectée par URL ou manipulation externe         |
+
+### Service worker 🥷👷‍♂️
