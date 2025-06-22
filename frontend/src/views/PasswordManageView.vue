@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { createPassword, updatePassword, pullPassword } from '../functions/general'
 import { encrypt, decrypt } from '@/crypto/encryption'
+import { isValidPassword } from '@/functions/FormValidation'
 
 const name = ref('')
 const value = ref('')
