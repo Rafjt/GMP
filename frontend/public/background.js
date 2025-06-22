@@ -1,105 +1,123 @@
-// // background.js
 import { deriveKey } from './deriveKey.js';
 
 let cachedKey = null;
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'UNLOCK') {
-    const { password, salt } = message;
-    deriveKey(password, salt)
-      .then(key => {
-        cachedKey = key;
-        console.log("LA CLÉ :",cachedKey)
-        sendResponse({ success: true });
-      })
-      .catch(err => {
-        console.error("Failed to derive key in background:", err);
-        sendResponse({ success: false });
-      });
-    return true; // keep sendResponse async
-  }
+const VALID_MESSAGE_TYPES = ['UNLOCK', 'LOCK', 'GET_KEY', 'ENCRYPT', 'DECRYPT'];
 
-  if (message.type === 'LOCK') {
-    cachedKey = null;
-    sendResponse({ success: true });
-  }
-
-if (message && message.type === 'GET_KEY') {
-  try {
-    console.log("La clé est demandée");
-
-    // Validate cachedKey presence
-    if (!cachedKey) {
-      console.warn("Clé introuvable en mémoire cache.");
-      sendResponse({ success: false, error: "Encryption key not found in memory." });
-    } else {
-      console.log("clé envoyé", cachedKey)
-      sendResponse({ success: true, key: cachedKey }); // directement l'objet JWK
-
-    }
-
-  } catch (err) {
-    console.error("Erreur lors de la récupération de la clé :", err);
-    sendResponse({ success: false, error: "Unexpected error while retrieving key." });
-  }
-
-  return true; // Ensure asynchronous response is allowed
+function isValidSender(sender) {
+  return sender && sender.id === chrome.runtime.id;
 }
 
-    if (message.type === 'ENCRYPT') {
-    const { plainText } = message;
-    if (!cachedKey) {
-      sendResponse({ success: false, error: "Key is missing." });
-      return true;
-    }
+function isValidMessage(message) {
+  return message && typeof message === 'object' && VALID_MESSAGE_TYPES.includes(message.type);
+}
 
+function respond(sendResponse, success, payload = {}) {
+  sendResponse({ success, ...payload });
+}
+
+//Handler UNLOCK
+async function handleUnlock(message, sendResponse) {
+  const { password, salt } = message;
+  try {
+    const key = await deriveKey(password, salt);
+    cachedKey = key;
+    console.log("Key derived and in cache.");
+    respond(sendResponse, true);
+  } catch (err) {
+    console.error("Error when deriving key:", err);
+    respond(sendResponse, false, { error: "Key derivation failed" });
+  }
+}
+
+//Handler LOCK
+function handleLock(sendResponse) {
+  cachedKey = null;
+  console.log("Key erased from cache");
+  respond(sendResponse, true);
+}
+
+//Handler GET_KEY
+function handleGetKey(sendResponse) {
+  if (!cachedKey) {
+    console.warn("Key not found");
+    return respond(sendResponse, false, { error: "Encryption key not found in memory." });
+  }
+
+  console.log("Key found and returned");
+  respond(sendResponse, true, { key: cachedKey });
+}
+
+//Handler ENCRYPT
+async function handleEncrypt(message, sendResponse) {
+  if (!cachedKey) {
+    return respond(sendResponse, false, { error: "Key is missing." });
+  }
+
+  try {
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const enc = new TextEncoder().encode(plainText);
+    const enc = new TextEncoder().encode(message.plainText);
 
-    crypto.subtle.encrypt({ name: "AES-GCM", iv }, cachedKey, enc)
-      .then(buffer => {
-        const combined = new Uint8Array(iv.length + buffer.byteLength);
-        combined.set(iv, 0);
-        combined.set(new Uint8Array(buffer), iv.length);
-        sendResponse({ success: true, cipher: btoa(String.fromCharCode(...combined)) });
-      })
-      .catch(error => {
-        console.error("Encryption error:", error);
-        sendResponse({ success: false, error: "Encryption failed" });
-      });
+    const buffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cachedKey, enc);
 
-    return true;
+    const combined = new Uint8Array(iv.length + buffer.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(buffer), iv.length);
+
+    const cipher = btoa(String.fromCharCode(...combined));
+    respond(sendResponse, true, { cipher });
+  } catch (error) {
+    console.error("Encryption error: ", error);
+    respond(sendResponse, false, { error: "Encryption failed" });
+  }
+}
+
+//Handler DECRYPT
+async function handleDecrypt(message, sendResponse) {
+  if (!cachedKey) {
+    return respond(sendResponse, false, { error: "Key is missing." });
   }
 
-  if (message.type === 'DECRYPT') {
-    const { cipherText } = message;
-    if (!cachedKey) {
-      sendResponse({ success: false, error: "Key is missing." });
-      return true;
-    }
+  try {
+    const combined = Uint8Array.from(atob(message.cipherText), c => c.charCodeAt(0));
+    const iv = combined.slice(0, 12);
+    const data = combined.slice(12);
 
-    try {
-      const combined = Uint8Array.from(atob(cipherText), c => c.charCodeAt(0));
-      const iv = combined.slice(0, 12);
-      const data = combined.slice(12);
+    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, cachedKey, data);
+    const text = new TextDecoder().decode(decrypted);
 
-      crypto.subtle.decrypt({ name: "AES-GCM", iv }, cachedKey, data)
-        .then(decrypted => {
-          const text = new TextDecoder().decode(decrypted);
-          sendResponse({ success: true, plainText: text });
-        })
-        .catch(error => {
-          console.error("Decryption error:", error);
-          sendResponse({ success: false, error: "Decryption failed" });
-        });
-
-    } catch (e) {
-      console.error("Parsing error:", e);
-      sendResponse({ success: false, error: "Invalid input" });
-    }
-
-    return true;
+    respond(sendResponse, true, { plainText: text });
+  } catch (error) {
+    console.error("Decryption error:", error);
+    respond(sendResponse, false, { error: "Decryption failed" });
   }
+}
+
+//Dispatcher des calls
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!isValidSender(sender)) {
+    console.warn("Unauthorized sender: ", sender);
+    respond(sendResponse, false, { error: "Unauthorized sender" });
+    return;
+  }
+
+  if (!isValidMessage(message)) {
+    console.warn("Invalid message format :", message);
+    respond(sendResponse, false, { error: "Invalid message format" });
+    return;
+  }
+
+  switch (message.type) {
+    case 'UNLOCK': return handleUnlock(message, sendResponse);
+    case 'LOCK': return handleLock(sendResponse);
+    case 'GET_KEY': return handleGetKey(sendResponse);
+    case 'ENCRYPT': return handleEncrypt(message, sendResponse);
+    case 'DECRYPT': return handleDecrypt(message, sendResponse);
+    default:
+      respond(sendResponse, false, { error: "Unknown message type" });
+  }
+
+  return true; // Maintient sendResponse async
 });
 
-console.log("Service worker loaded.");
+console.log("🔧 Service worker loaded.");
