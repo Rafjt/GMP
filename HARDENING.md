@@ -195,3 +195,59 @@ Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
 | **Journalisation contrôlée**    | `console.warn` pour anomalies, pas d’exfiltration de données sensibles |
 | **Centralisation des réponses** | Via `respond()`                                                        |
 | **Cache contrôlé**              | La clé est stockée uniquement en mémoire, jamais en `storage`          |
+
+
+___
+
+## Major encryption system vulnerability
+
+
+---
+
+### 🔐 AES-GCM avec IV déterministe
+
+### 📌 Problème
+
+AES-GCM **exige un IV unique** pour chaque chiffrement avec une même clé.
+Utiliser un IV **aléatoire** ne garantit pas l’unicité → **risque de faille de sécurité** (ex. : perte de confidentialité, contournement de l’intégrité).
+
+---
+
+### ✅ Solution
+
+Utilisation d’un **IV déterministe basé sur un compteur local** :
+
+* Le compteur est stocké dans `localStorage`.
+* À chaque chiffrement :
+
+  * Le compteur est lu et transformé en IV de 12 octets.
+  * Il est ensuite incrémenté.
+  * L’IV est préfixé au message chiffré pour pouvoir le réutiliser au déchiffrement.
+
+---
+
+### 🧠 Avantages
+
+* IV **garanti unique** (jusqu’à 2³² messages).
+* Compatible navigateur.
+* Aucune dépendance externe ou serveur.
+
+---
+
+### 📂 Exemple
+
+```js
+function getNonceCounter() {
+  const key = 'aes-gcm-nonce-counter';
+  let val = parseInt(localStorage.getItem(key)) || 0;
+  localStorage.setItem(key, val + 1);
+  return val;
+}
+
+function generateDeterministicIV(counter) {
+  const iv = new Uint8Array(12);
+  new DataView(iv.buffer).setUint32(8, counter);
+  return iv;
+}
+```
+
