@@ -16,6 +16,22 @@ function respond(sendResponse, success, payload = {}) {
   sendResponse({ success, ...payload });
 }
 
+function getNonceCounter() {
+  const key = 'aes-gcm-nonce-counter';
+  let value = parseInt(localStorage.getItem(key), 10);
+  if (isNaN(value)) value = 0;
+  localStorage.setItem(key, value + 1);
+  return value;
+}
+
+function generateDeterministicIV(counter) {
+  const iv = new Uint8Array(12); // 96 bits
+  const view = new DataView(iv.buffer);
+  view.setUint32(8, counter); // utilise les 4 derniers octets comme compteur
+  return iv;
+}
+
+
 //Handler UNLOCK
 async function handleUnlock(message, sendResponse) {
   const { password, salt } = message;
@@ -49,16 +65,37 @@ function handleGetKey(sendResponse) {
 }
 
 //Handler ENCRYPT
+function getNonceCounter() {
+  const key = 'aes-gcm-nonce-counter';
+  let value = parseInt(localStorage.getItem(key), 10);
+  if (isNaN(value)) value = 0;
+  localStorage.setItem(key, value + 1);
+  return value;
+}
+
+function generateDeterministicIV(counter) {
+  const iv = new Uint8Array(12); // 96 bits requis pour AES-GCM
+  const view = new DataView(iv.buffer);
+  view.setUint32(8, counter); // les 4 derniers octets contiennent le compteur
+  return iv;
+}
+
+// Handler ENCRYPT modifié
 async function handleEncrypt(message, sendResponse) {
   if (!cachedKey) {
     return respond(sendResponse, false, { error: "Key is missing." });
   }
 
   try {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const counter = getNonceCounter();
+    const iv = generateDeterministicIV(counter);
     const enc = new TextEncoder().encode(message.plainText);
 
-    const buffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cachedKey, enc);
+    const buffer = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      cachedKey,
+      enc
+    );
 
     const combined = new Uint8Array(iv.length + buffer.byteLength);
     combined.set(iv, 0);
