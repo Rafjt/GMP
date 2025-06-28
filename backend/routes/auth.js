@@ -61,7 +61,7 @@ router.post("/register", Limiter, async (req, res) => {
     );
 
     // Remplace par le domaine réel de ton API
-    const verificationLink = `http://51.210.151.154:2111/auth/verify-email?token=${verificationToken}`;
+    const verificationLink = `https://rrpm.site/auth/verify-email?token=${verificationToken}`;
 
     await sendMail(
       email,
