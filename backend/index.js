@@ -45,15 +45,15 @@ app.use(cors({
 
 
 
-// app.use((req, res, next) => {
-//   console.log('----- Incoming Request -----');
-//   console.log('Origin:', req.headers.origin);
-//   console.log('Method:', req.method);
-//   console.log('URL:', req.originalUrl);
-//   console.log('Headers:', req.headers);
-//   console.log('Body:', req.body);
-//   next();
-// });
+app.use((req, res, next) => {
+  console.log('----- Incoming Request -----');
+  console.log('Origin:', req.headers.origin);
+  console.log('Method:', req.method);
+  console.log('URL:', req.originalUrl);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  next();
+});
 
 
 app.use('/api',router)
