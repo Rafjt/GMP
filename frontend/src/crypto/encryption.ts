@@ -12,6 +12,7 @@ export async function encrypt(plainText: string): Promise<string> {
 
 export async function decrypt(cipherText: string): Promise<string> {
   return new Promise((resolve, reject) => {
+    console.log("DBG: DECRYPT CALLED");
     chrome.runtime.sendMessage({ type: 'DECRYPT', cipherText }, (res) => {
       if (res?.success) {
         resolve(res.plainText);

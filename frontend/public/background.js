@@ -111,11 +111,13 @@ async function handleEncrypt(message, sendResponse) {
 
 //Handler DECRYPT
 async function handleDecrypt(message, sendResponse) {
+  console.log("DBG: IN DECRYPT HANDLER")
   if (!cachedKey) {
     return respond(sendResponse, false, { error: "Key is missing." });
   }
 
   try {
+    console.log("DBG: BEGINNING TRY");
     const combined = Uint8Array.from(atob(message.cipherText), c => c.charCodeAt(0));
     const iv = combined.slice(0, 12);
     const data = combined.slice(12);
