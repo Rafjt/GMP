@@ -7,11 +7,14 @@ const sequelize = require('./database');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const helmet = require('helmet');
+const pinoHttp = require('pino-http');
+const logger = require('./logger');
 // const bodyParser = require('body-parser');
+
 app.use(helmet());
-// Middleware to parse JSON
 app.use(express.json());
 app.use(cookieParser());
+
 // OG
 // app.use(cors({
 //   origin: function (origin, callback) {
@@ -45,17 +48,17 @@ app.use(cors({
 
 
 
-app.use((req, res, next) => {
-  console.log('----- Incoming Request -----');
-  console.log('Origin:', req.headers.origin);
-  console.log('Method:', req.method);
-  console.log('URL:', req.originalUrl);
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log('----- Incoming Request -----');
+//   console.log('Origin:', req.headers.origin);
+//   console.log('Method:', req.method);
+//   console.log('URL:', req.originalUrl);
+//   console.log('Headers:', req.headers);
+//   console.log('Body:', req.body);
+//   next();
+// });
 
-
+app.use(pinoHttp({ logger }));
 app.use('/api',router)
 app.use('/auth', auth);
 

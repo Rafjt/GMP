@@ -19,10 +19,11 @@ const verifyToken = (req, res, next) => {
 
         // Token valide : on attache les infos à la requête
         req.user = decoded;
-
+        req.log?.info({ userId: decoded.id }, 'JWT verified successfully');
         next(); // on passe à la route suivante
     } catch (err) {
         // Gestion des erreurs
+        req.log?.warn({ err }, 'JWT verification failed');
         if (err.name === 'TokenExpiredError') {
             return res.status(401).json({ error: 'Token expired' });
         } else if (err.name === 'JsonWebTokenError') {
@@ -50,7 +51,7 @@ router.get('/get_salt', verifyToken , async (req, res) => {
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
     const id = decoded.id;
-
+    req.log.info({ userId: decoded.id }, 'Fetching user salt');
     const response = await sequelize.query(
       'SELECT salt FROM rrpm_user WHERE id = :id',
       { replacements: {id} }
@@ -62,6 +63,7 @@ router.get('/get_salt', verifyToken , async (req, res) => {
 
     res.json(response[0]);
   } catch (error) {
+    req.log.warn({ userId: decoded.id }, 'User not found for /get_salt');
     console.error('Error:', error);
     res.status(401).json({ error: 'Invalid or expired token' });
   }
@@ -125,6 +127,12 @@ router.post('/ciphered/password', verifyToken, Limiter, async (req, res) => {
         values += ')';
         query += values;
 
+        req.log.info({
+            userId: id,
+            action: 'create-password',
+            name,
+        }, 'Creating new ciphered password entry');
+
         const response = await sequelize.query(query, {
             replacements,
             type: sequelize.QueryTypes.INSERT
@@ -132,6 +140,7 @@ router.post('/ciphered/password', verifyToken, Limiter, async (req, res) => {
 
         res.json(response);
     } catch (error) {
+        req.log.error({ err: error, userId: id }, 'Failed to create ciphered password');
         console.error('Error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -162,6 +171,7 @@ router.get('/ciphered/password', verifyToken, async (req, res) => {
 router.delete('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => { 
   const { id } = req.params;
   const userId = req.user.id;
+  req.log.info({ userId, passwordId: id }, 'Password deletion requested');
 
   try {
     // 1. Check if the password belongs to the user
@@ -174,6 +184,7 @@ router.delete('/ciphered/password/:id', verifyToken, Limiter, async (req, res) =
     );
 
     if (existing.length === 0) {
+      req.log.warn({ userId, passwordId: id }, 'Password not found or not owned by user');
       return res.status(404).json({ error: 'Password not found or not owned by user' });
     }
 
@@ -187,8 +198,7 @@ router.delete('/ciphered/password/:id', verifyToken, Limiter, async (req, res) =
     );
 
     // Optional: log the deletion
-    console.log(`User ${userId} deleted password ${id} at ${new Date().toISOString()}`);
-
+    req.log.info({ userId, passwordId: id }, 'Password successfully deleted');
     res.json({ message: 'Password deleted successfully' });
 
   } catch (error) {
@@ -202,6 +212,8 @@ router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const { name, password, description, url } = req.body;
+    req.log.info({ userId, passwordId: id }, 'Attempting to update ciphered password');
+
 
     try {
         const existing = await sequelize.query(
@@ -246,6 +258,7 @@ router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
         }
 
         res.json({ message: 'Password updated successfully' });
+        req.log.info({ userId, passwordId: id }, 'Ciphered password updated successfully');
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Internal server error' });
