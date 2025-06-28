@@ -29,20 +29,18 @@ app.use(cookieParser());
 // })); 
 
 // REVAMP
-const allowedOrigins = [
-  'chrome-extension://gihknlfgpmgeghooohdfheejepjmofao'
-];
+const allowedPrefix = 'chrome-extension://';
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, false); // ou true si tu veux autoriser requêtes sans Origin (à évaluer)
-    if (allowedOrigins.includes(origin)) {
+    if (!origin) return callback(null, false); // Block requests with no Origin header
+    if (origin.startsWith(allowedPrefix)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST','PUT','DELETE']
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
 
 
