@@ -16,13 +16,18 @@ function respond(sendResponse, success, payload = {}) {
   sendResponse({ success, ...payload });
 }
 
-function getNonceCounter() {
+async function getNonceCounter() {
   const key = 'aes-gcm-nonce-counter';
-  let value = parseInt(localStorage.getItem(key), 10);
-  if (isNaN(value)) value = 0;
-  localStorage.setItem(key, value + 1);
-  return value;
+  return new Promise((resolve) => {
+    chrome.storage.local.get([key], (result) => {
+      let value = parseInt(result[key], 10);
+      if (isNaN(value)) value = 0;
+      const next = value + 1;
+      chrome.storage.local.set({ [key]: next }, () => resolve(value));
+    });
+  });
 }
+
 
 function generateDeterministicIV(counter) {
   const iv = new Uint8Array(12); // 96 bits
@@ -64,22 +69,6 @@ function handleGetKey(sendResponse) {
   respond(sendResponse, true, { key: cachedKey });
 }
 
-//Handler ENCRYPT
-function getNonceCounter() {
-  const key = 'aes-gcm-nonce-counter';
-  let value = parseInt(localStorage.getItem(key), 10);
-  if (isNaN(value)) value = 0;
-  localStorage.setItem(key, value + 1);
-  return value;
-}
-
-function generateDeterministicIV(counter) {
-  const iv = new Uint8Array(12); // 96 bits requis pour AES-GCM
-  const view = new DataView(iv.buffer);
-  view.setUint32(8, counter); // les 4 derniers octets contiennent le compteur
-  return iv;
-}
-
 // Handler ENCRYPT modifié
 async function handleEncrypt(message, sendResponse) {
   if (!cachedKey) {
@@ -87,7 +76,7 @@ async function handleEncrypt(message, sendResponse) {
   }
 
   try {
-    const counter = getNonceCounter();
+    const counter = await getNonceCounter();
     const iv = generateDeterministicIV(counter);
     const enc = new TextEncoder().encode(message.plainText);
 
@@ -137,26 +126,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!isValidSender(sender)) {
     console.warn("Unauthorized sender: ", sender);
     respond(sendResponse, false, { error: "Unauthorized sender" });
-    return;
+    return; // No need to keep port open
   }
 
   if (!isValidMessage(message)) {
     console.warn("Invalid message format :", message);
     respond(sendResponse, false, { error: "Invalid message format" });
-    return;
+    return; // No need to keep port open
   }
 
   switch (message.type) {
-    case 'UNLOCK': return handleUnlock(message, sendResponse);
-    case 'LOCK': return handleLock(sendResponse);
-    case 'GET_KEY': return handleGetKey(sendResponse);
-    case 'ENCRYPT': return handleEncrypt(message, sendResponse);
-    case 'DECRYPT': return handleDecrypt(message, sendResponse);
+    case 'UNLOCK':
+      handleUnlock(message, sendResponse);
+      return true; // ✅ Keep message channel open for async response
+
+    case 'LOCK':
+      handleLock(sendResponse);
+      return false;
+
+    case 'GET_KEY':
+      handleGetKey(sendResponse);
+      return false;
+
+    case 'ENCRYPT':
+      handleEncrypt(message, sendResponse);
+      return true; // ✅
+
+    case 'DECRYPT':
+      handleDecrypt(message, sendResponse);
+      return true; // ✅
+
     default:
       respond(sendResponse, false, { error: "Unknown message type" });
+      return false;
   }
-
-  return true; // Maintient sendResponse async
 });
 
 console.log("🔧 Service worker loaded.");
