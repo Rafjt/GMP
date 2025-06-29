@@ -2,7 +2,7 @@
 import { computed, watch, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
-import { loginUser, getSalt } from '@/functions/general';
+import { loginUser, getSalt, pullUrl } from '@/functions/general';
 import { isValidEmail, isValidPassword } from '@/functions/FormValidation';
 import DOMPurify from 'dompurify';
 
@@ -34,6 +34,19 @@ const MissingFieldError = computed(() => {
 watch(MissingFieldError, (newValue) => {
   errorMessage.value = newValue;
 });
+
+const handleAfterUnlock = async () => {
+  try {
+    const urlsResponse = await pullUrl();
+    chrome.storage.local.set({ storedUrls: urlsResponse }, () => {
+      console.log("URLs stored locally:", urlsResponse);
+    });
+    router.push("/welcome");
+  } catch (error) {
+    console.error("Failed to pull URLs:", error);
+    errorMessage.value = safeMessage("Failed to pull/store URLs.");
+  }
+};
 
 const login = async () => {
   errorMessage.value = ''; // reset previous errors
@@ -74,6 +87,7 @@ const login = async () => {
           errorMessage.value = safeMessage("Background communication failed.");
         } else if (res.success) {
           console.log("Vault unlocked");
+          handleAfterUnlock();
           router.push("/welcome");
         } else {
           errorMessage.value = safeMessage("Key derivation failed.");
