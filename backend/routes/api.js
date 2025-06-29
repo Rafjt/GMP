@@ -301,5 +301,28 @@ router.put('/ciphered/password/:id', verifyToken, Limiter, async (req, res) => {
     }
 });
 
+// URL
 
-module.exports = router; 
+router.get('/url', verifyToken, async (req, res) => {
+    const id = req.user.id; // récupéré depuis le token vérifié par le middleware
+
+    if (!id) {
+        return res.status(404).json({ error: 'User id not found in request' });
+    }
+
+    try {
+        const response = await sequelize.query(
+            'SELECT url FROM cipher_passwords WHERE user_id = :id AND url != "null"',
+            {
+                replacements: { id },
+                type: sequelize.QueryTypes.SELECT
+            }
+        );
+        res.json(response);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+module.exports = router;

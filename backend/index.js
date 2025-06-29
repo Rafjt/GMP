@@ -11,40 +11,45 @@ const pinoHttp = require('pino-http');
 const logger = require('./logger');
 // const bodyParser = require('body-parser');
 
-app.use(helmet());
-app.use(express.json());
-app.use(cookieParser());
-
-// OG
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     if (!origin) return callback(null, false);
-
-//     // Allow Chrome Extensions and maybe localhost during dev
-//     if (origin.startsWith('chrome-extension://') || origin.startsWith('http://localhost')) {
-//       return callback(null, true);
-//     }
-
-//     return callback(new Error('Not allowed by CORS'));
-//   },
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE']
-// })); 
-
-// REVAMP
+// Version test postman
 const allowedPrefix = 'chrome-extension://';
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, false); // Block requests with no Origin header
+    // Postman and server-to-server requests
+    if (!origin) return callback(null, true);
+
+    // Allow Chrome extension
     if (origin.startsWith(allowedPrefix)) {
       return callback(null, true);
     }
+
+    // You can whitelist more origins here if needed
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
+
+
+app.use(helmet());
+app.use(express.json());
+app.use(cookieParser());
+
+// PROD
+// const allowedPrefix = 'chrome-extension://';
+
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     if (!origin) return callback(null, false); // Block requests with no Origin header
+//     if (origin.startsWith(allowedPrefix)) {
+//       return callback(null, true);
+//     }
+//     return callback(new Error('Not allowed by CORS'));
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE']
+// }));
 
 
 
