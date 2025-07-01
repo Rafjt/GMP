@@ -125,3 +125,19 @@ justify-content: space-between;
   color: #eee;
   font-weight: 600;
 }
+
+.customErrors {
+  color: #cc0033;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 20px;
+}
+
+.customEvent {
+  color: #00cc36;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 20px;
+}
