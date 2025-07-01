@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
-import { changeMasterPassword } from '../functions/general'; // Update path as needed
+import { changeMasterPassword } from '../functions/general'
+import { isValidPassword } from '../functions/FormValidation'
 
 const showPasswordFields = ref(false)
 const oldPassword = ref('')
@@ -23,6 +24,13 @@ const handlechangeMasterPassword = async () => {
     return
   }
 
+  if (!isValidPassword(newPassword.value)) {
+    feedbackMessage.value =
+      'New password does not meet the required criteria.'
+    isError.value = true
+    return
+  }
+
   const result = await changeMasterPassword(oldPassword.value, newPassword.value)
 
   if (result.success) {
@@ -37,6 +45,7 @@ const handlechangeMasterPassword = async () => {
   }
 }
 </script>
+
 
 
 <template>
@@ -64,7 +73,7 @@ const handlechangeMasterPassword = async () => {
           Confirm change
         </button>
 
-        <p v-if="feedbackMessage" :class="isError ? 'text-red-400' : 'text-green-400'">
+        <p v-if="feedbackMessage" :class="isError ? 'customErrors' : 'customEvent'">
           {{ feedbackMessage }}
         </p>
       </div>
