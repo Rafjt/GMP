@@ -69,32 +69,67 @@ router.get('/get_salt', verifyToken , async (req, res) => {
   }
 });
 
+// router.delete('/delete', verifyToken , async (req, res) => {
+
+// });
+
 
 // Master password route
 
 // utiliser cette route dans le front
-// ⚠️ Pas le meilleur mouv mettre l'id en PARAMS
-router.put('/master/password/:id', verifyToken, async (req, res) => { // ❌ À corriger pour implem
-    const { id } = req.params;
-    const { password } = req.body;
-     const token = req.cookies.token;
+
+router.put('/master/password', verifyToken, Limiter, async (req, res) => {
+  const id = req.user.id;
+  const { oldPassword, newPassword } = req.body;
+  const token = req.cookies.token;
 
   if (!token) {
     return res.status(401).json({ error: 'No token provided' });
   }
-    try {
-        const response = await sequelize.query(
-            'UPDATE rrpm_user SET hashed_master_password = :password WHERE id = :id',
-            {
-                replacements: { password, id },
-                type: sequelize.QueryTypes.UPDATE
-            }
-        );
-        res.json({ message: 'Password updated successfully' });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ error: 'Both old and new passwords are required' });
+  }
+
+  try {
+    // Step 1: Fetch current hashed password
+    const [user] = await sequelize.query(
+      'SELECT hashed_master_password FROM rrpm_user WHERE id = :id',
+      {
+        replacements: { id },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
+
+    // Step 2: Compare old password with hash
+    const isMatch = await bcrypt.compare(oldPassword, user.hashed_master_password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Old password is incorrect' });
+    }
+
+    // Step 3: Hash new password
+    const saltRounds = 12;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Step 4: Update password in DB
+    await sequelize.query(
+      'UPDATE rrpm_user SET hashed_master_password = :password WHERE id = :id',
+      {
+        replacements: { password: hashedNewPassword, id },
+        type: sequelize.QueryTypes.UPDATE
+      }
+    );
+
+    res.json({ message: 'Password updated successfully' });
+
+  } catch (error) {
+    console.error('Error updating password:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 
