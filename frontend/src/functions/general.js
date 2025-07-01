@@ -1,5 +1,6 @@
 import { API_AUTH_URL,API_BASE_URL } from "../components/constant.js";
-export { logout,generatePassword,pullPassword,deletePassword,createPassword,loginUser,getSalt,updatePassword,changeMasterPassword };
+export { logout,generatePassword,pullPassword,deletePassword,createPassword,
+    loginUser,getSalt,updatePassword,changeMasterPassword,deleteAccount };
 
 async function pullPassword() {
     try {
@@ -219,3 +220,30 @@ async function changeMasterPassword(oldPassword, newPassword) {
     return { success: false, error: error.message };
   }
 }
+
+async function deleteAccount() {
+  console.log("DBG: deleteAccount() has been called")
+  try {
+    const response = await fetch(`${API_AUTH_URL}/deleteAccount`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      throw new Error('Unexpected response type');
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Account deletion failed');
+    }
+
+    return { success: true, message: data.message };
+  } catch (error) {
+    console.error('Network or unexpected error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
