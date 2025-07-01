@@ -13,6 +13,8 @@ const { isAuthenticated } = useAuth();
         <RouterLink to="/password" class="login-link">Your passwords</RouterLink>
         <br>
         <RouterLink to="/password-generator" class="login-link">Password generator</RouterLink>
+        <br>        
+        <RouterLink to="/setting" class="login-link">Settings</RouterLink>
         <br>
         <RouterLink to="/logout" class="login-link">Logout</RouterLink>
       </nav>
