@@ -6,6 +6,7 @@ import CreateAccountView from '@/views/CreateAccountView.vue';
 import PasswordView from '@/views/PasswordView.vue';
 import PasswordGeneratorView from '@/views/PasswordGeneratorView.vue';
 import PasswordManageView from '@/views/PasswordManageView.vue';
+import SettingView from '@/views/SettingView.vue'
 import { refreshAuth } from '@/composables/useAuth';
 
 const routes = [
@@ -15,7 +16,8 @@ const routes = [
   { path: '/password', component: PasswordView, meta: { requiresAuth: true } },
   { path: '/password-generator', component: PasswordGeneratorView, meta: { requiresAuth: true } },
   { path: '/password-management', component: PasswordManageView, meta: { requiresAuth: true } },
-  { path: '/', redirect: '/login' } // Redirection par défaut
+  { path: '/setting', component: SettingView, meta: {requiresAuth: true}},
+  { path: '/', redirect: '/login' }, // Redirection par défaut
 ];
 
 const router = createRouter({
