@@ -211,6 +211,10 @@ ___
 AES-GCM **exige un IV unique** pour chaque chiffrement avec une même clé.
 Utiliser un IV **aléatoire** ne garantit pas l’unicité → **risque de faille de sécurité** (ex. : perte de confidentialité, contournement de l’intégrité).
 
+### Le nombre de tour de AES-GCM lors de la dérivation de la clé à été augmenter à 600 000 tours suite à la lecture du texte ci-dessous:
+
+'By default, Bitwarden is set to iterate 600,000 times, as recommended by OWASP for HMAC-SHA-256 implementations. So long as the user does not set this value lower, the implementation is FIPS-140 compliant, but here are some tips should you choose to change your settings.'
+
 ---
 
 ### ✅ Solution
