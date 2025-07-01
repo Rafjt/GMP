@@ -1,5 +1,5 @@
 import { API_AUTH_URL,API_BASE_URL } from "../components/constant.js";
-export { logout,generatePassword,pullPassword,deletePassword,createPassword,loginUser,getSalt,updatePassword };
+export { logout,generatePassword,pullPassword,deletePassword,createPassword,loginUser,getSalt,updatePassword,changeMasterPassword };
 
 async function pullPassword() {
     try {
@@ -191,4 +191,31 @@ async function getSalt() {
         console.error("Error:", error);
         return { error: "Failed to retrieve salt" };
     }
+}
+
+async function changeMasterPassword(oldPassword, newPassword) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/master/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        oldPassword,
+        newPassword,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Password update failed');
+    }
+
+    return { success: true, message: data.message };
+  } catch (error) {
+    console.error('Password change error:', error);
+    return { success: false, error: error.message };
+  }
 }
