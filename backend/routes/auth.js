@@ -7,10 +7,37 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const sendMail = require("../mailer");
 const { QueryTypes } = require("sequelize");
-const verifyToken = require('./api')
 const { Limiter } = require('../functions')
 const validator = require("validator");
 const SECRET_KEY = process.env.JWT_SECRET;
+
+const verifyToken = (req, res, next) => {
+    const token = req.cookies.token;
+
+    if (!token) {
+        return res.status(401).json({ error: 'No token provided' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Token valide : on attache les infos à la requête
+        req.user = decoded;
+        req.log?.info({ userId: decoded.id }, 'JWT verified successfully');
+        next(); // on passe à la route suivante
+    } catch (err) {
+        // Gestion des erreurs
+        req.log?.warn({ err }, 'JWT verification failed');
+        if (err.name === 'TokenExpiredError') {
+            return res.status(401).json({ error: 'Token expired' });
+        } else if (err.name === 'JsonWebTokenError') {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+
+        // Erreur inattendue
+        return res.status(500).json({ error: 'Token verification failed' });
+    }
+};
 
 router.post("/register", Limiter, async (req, res) => {
   const { email, password } = req.body;
@@ -186,5 +213,44 @@ router.post('/logout', (req, res) => {
   res.setHeader('X-Debug-Logout', 'Token cookie cleared');
   res.json({ message: 'Logged out' });
 });
+
+router.delete("/deleteAccount", verifyToken, Limiter, async (req, res) => {
+  const id = req.user.id;
+
+  try {
+    const result = await sequelize.query(
+      'DELETE FROM rrpm_user WHERE id = :id',
+      {
+        replacements: { id },
+        type: sequelize.QueryTypes.DELETE,
+      }
+    );
+
+    res.clearCookie('token');
+    res.status(200).json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Account deletion error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+// router.delete("/deleteAccount", verifyToken, Limiter, async (req, res) => {
+//   const id = req.user.id;
+
+//   try {
+//     await sequelize.query('DELETE FROM rrpm_user WHERE id = ?', {
+//       replacements: [id],
+//       type: sequelize.QueryTypes.DELETE,
+//     });
+
+//     res.clearCookie("token"); // Optionnel : supprime le cookie d'auth
+//     return res.json({ message: "Account deleted successfully" }); // ✅ important
+//   } catch (error) {
+//     console.error("Error deleting account:", error);
+//     return res.status(500).json({ error: "Internal server error" }); // ✅ important
+//   }
+// });
+
 
 module.exports = router;
