@@ -5,6 +5,7 @@ const sequelize = require("../database");
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = process.env.JWT_SECRET;
 const { Limiter } = require('../functions')
+const bcrypt = require("bcrypt");
 
 
 const verifyToken = (req, res, next) => {

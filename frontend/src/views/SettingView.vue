@@ -1,14 +1,43 @@
 <script setup>
 import { ref } from 'vue'
+import { changeMasterPassword } from '../functions/general'; // Update path as needed
 
 const showPasswordFields = ref(false)
 const oldPassword = ref('')
 const newPassword = ref('')
+const feedbackMessage = ref('')
+const isError = ref(false)
 
 const togglePasswordFields = () => {
   showPasswordFields.value = !showPasswordFields.value
+  feedbackMessage.value = ''
+  isError.value = false
+  oldPassword.value = ''
+  newPassword.value = ''
+}
+
+const handlechangeMasterPassword = async () => {
+  if (!oldPassword.value || !newPassword.value) {
+    feedbackMessage.value = 'Please fill in both fields.'
+    isError.value = true
+    return
+  }
+
+  const result = await changeMasterPassword(oldPassword.value, newPassword.value)
+
+  if (result.success) {
+    feedbackMessage.value = result.message || 'Password changed successfully.'
+    isError.value = false
+    showPasswordFields.value = false
+    oldPassword.value = ''
+    newPassword.value = ''
+  } else {
+    feedbackMessage.value = result.error || 'An error occurred.'
+    isError.value = true
+  }
 }
 </script>
+
 
 <template>
   <div class="setting-container">
@@ -30,6 +59,14 @@ const togglePasswordFields = () => {
           type="password"
           class="old-new-password"
         />
+
+        <button class="button-event mt-2" @click="handlechangeMasterPassword">
+          Confirm change
+        </button>
+
+        <p v-if="feedbackMessage" :class="isError ? 'text-red-400' : 'text-green-400'">
+          {{ feedbackMessage }}
+        </p>
       </div>
     </div>
 
@@ -41,5 +78,6 @@ const togglePasswordFields = () => {
     </div>
   </div>
 </template>
+
 
 <style scoped src="@/assets/main.css"></style>
