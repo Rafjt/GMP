@@ -11,8 +11,10 @@ const value = ref('')
 const description = ref('')
 const url = ref('')
 const isLoading = ref(false)
-const passwordError = ref('');
+const passwordError = ref('')
 const clean = (val) => DOMPurify.sanitize(val || '')
+const warnedOnce = ref(false)
+const forceSubmit = ref(false)
 
 const router = useRouter()
 const route = useRoute()
@@ -43,19 +45,21 @@ onMounted(async () => {
 })
 
 const initCreatePassword = async () => {
+  if (!isValidPassword(value.value)) {
+    if (!warnedOnce.value) {
+      passwordError.value = "⚠️ It is recommended to use a password with: 12 characters, an uppercase letter, a lowercase letter, a number, and a symbol."
+      warnedOnce.value = true
+      return // affiche le warning et stoppe la 1ère fois
+    }
+    // Si warnedOnce est vrai, on continue malgré le warning (pas d'erreur affichée)
+  }
+
+  passwordError.value = '' // clear error si mdp ok ou 2e soumission
+
   isLoading.value = true
 
   try {
-    
-    passwordError.value = ''; // clear previous error
-    if (!isValidPassword(value.value)) {
-      passwordError.value = "Password is too weak or invalid.";
-      isLoading.value = false;
-      return;
-    }
-
     const encrypted = await encrypt(value.value)
-
     const cleanName = clean(name.value)
     const cleanDesc = clean(description.value)
     const cleanUrl = clean(url.value)
@@ -66,7 +70,6 @@ const initCreatePassword = async () => {
     } else {
       result = await createPassword(cleanName, encrypted, cleanDesc, cleanUrl)
     }
-
 
     if (result && !result.error) {
       setTimeout(() => router.push("/password"), 100)
@@ -79,6 +82,7 @@ const initCreatePassword = async () => {
     isLoading.value = false
   }
 }
+
 </script>
 
 <template>
@@ -109,6 +113,7 @@ const initCreatePassword = async () => {
           class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
         />
       </div>
+
       <div v-if="passwordError" class="customErrors">{{ passwordError }}</div>
 
       <div class="mb-4">
@@ -131,9 +136,15 @@ const initCreatePassword = async () => {
         />
       </div>
 
-      <button type="submit" class="button-2" :disabled="isLoading">
+      <button 
+        type="submit"
+        class="button-2"
+        :disabled="isLoading"
+      >
         {{ isLoading ? (mode === 'edit' ? "Updating..." : "Creating...") : (mode === 'edit' ? "Update" : "Create") }}
       </button>
+
+
     </form>
   </div>
 </template>
