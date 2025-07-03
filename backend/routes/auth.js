@@ -80,7 +80,30 @@ router.post("/register", Limiter, async (req, res) => {
     req.log?.info({ email }, 'User registered, verification email sent');
 
     const verificationLink = `https://rrpm.site/auth/verify-email?token=${verificationToken}`;
-    await sendMail(email, "Verify Your Email", `Click the link: ${verificationLink}`);
+    const html = `<div style="font-family: Arial, sans-serif; text-align: center;">
+    <h2>Welcome to RRPM 👋</h2>
+    <p>Click the button below to verify your email address:</p>
+    <a href="${verificationLink}" 
+       style="
+         display: inline-block;
+         padding: 12px 20px;
+         margin-top: 10px;
+         font-size: 16px;
+         font-weight: bold;
+         color: white;
+         background-color: #007BFF;
+         border-radius: 6px;
+         text-decoration: none;
+       ">
+      Verify Email
+    </a>
+  </div>`;
+    await sendMail(
+      email,
+      "Verify Your Email",
+      `Click the link: ${verificationLink}`,
+      html
+    );
 
     return res.status(201).json({
       message: "User registered. Please verify your email before logging in.",
