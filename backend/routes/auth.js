@@ -217,6 +217,10 @@ router.post('/logout', (req, res) => {
 router.delete("/deleteAccount", verifyToken, Limiter, async (req, res) => {
   const id = req.user.id;
 
+  if (!req.user?.id) {
+    return res.status(401).json({ error: 'Unauthorized: User ID missing' });
+  }
+
   try {
     const result = await sequelize.query(
       'DELETE FROM rrpm_user WHERE id = :id',
@@ -233,24 +237,5 @@ router.delete("/deleteAccount", verifyToken, Limiter, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-
-// router.delete("/deleteAccount", verifyToken, Limiter, async (req, res) => {
-//   const id = req.user.id;
-
-//   try {
-//     await sequelize.query('DELETE FROM rrpm_user WHERE id = ?', {
-//       replacements: [id],
-//       type: sequelize.QueryTypes.DELETE,
-//     });
-
-//     res.clearCookie("token"); // Optionnel : supprime le cookie d'auth
-//     return res.json({ message: "Account deleted successfully" }); // ✅ important
-//   } catch (error) {
-//     console.error("Error deleting account:", error);
-//     return res.status(500).json({ error: "Internal server error" }); // ✅ important
-//   }
-// });
-
 
 module.exports = router;
