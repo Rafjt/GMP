@@ -1,6 +1,6 @@
 import { API_AUTH_URL,API_BASE_URL } from "../components/constant.js";
 export { logout,generatePassword,pullPassword,deletePassword,createPassword,
-    loginUser,getSalt,updatePassword,changeMasterPassword,deleteAccount };
+    loginUser,getSalt,updatePassword,changeMasterPassword,deleteAccount,pullUrl};
 
 
 async function pullPassword() {
