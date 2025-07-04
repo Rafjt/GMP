@@ -10,6 +10,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const pinoHttp = require('pino-http');
 const logger = require('./logger');
+const path = require("path");
 // const bodyParser = require('body-parser');
 
 app.use(helmet());

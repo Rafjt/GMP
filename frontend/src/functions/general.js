@@ -1,7 +1,7 @@
 import { API_AUTH_URL,API_BASE_URL,API_2FA_URL } from "../components/constant.js";
 export { logout,generatePassword,pullPassword,deletePassword,createPassword,
     loginUser,getSalt,updatePassword,changeMasterPassword,deleteAccount,fetch2faStatusApi,
-    verify2FACode, toggle2faApi };
+    verify2FACode, toggle2faApi, sendResetEmail };
 
 async function pullPassword() {
     try {
@@ -38,7 +38,7 @@ async function deletePassword(id) {
             credentials: "include"
         });
         const data = await response.json();
-        
+
         if (response.ok) {
             return data;
         } else {
@@ -128,7 +128,7 @@ function generatePassword(length, useNumbers = true, useSymbols = true) {
 
   let charset = lowercase + uppercase;
   const mandatory = [];
-  
+
   if (useNumbers) {
     charset += numbers;
     mandatory.push(numbers[Math.floor(Math.random() * numbers.length)]);
@@ -293,4 +293,12 @@ async function toggle2faApi(enabled) {
   } catch (error) {
     return { success: false, error: error.message || "Network error" };
   }
+}
+
+async function sendResetEmail(email) {
+  return fetch('/api/request-password-reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
 }

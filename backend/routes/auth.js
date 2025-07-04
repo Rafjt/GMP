@@ -281,4 +281,102 @@ router.delete("/deleteAccount", verifyToken, Limiter, async (req, res) => {
   }
 });
 
+
+router.post("/request-password-reset", Limiter, async (req, res) => {
+  const { email } = req.body;
+  req.log?.info({ email }, "Password reset request");
+
+  if (!email || !validator.isEmail(email)) {
+    return res.status(400).json({ error: "Valid email is required." });
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  try {
+    const user = await sequelize.query(
+      "SELECT id FROM rrpm_user WHERE login = :email",
+      { replacements: { email }, type: sequelize.QueryTypes.SELECT }
+    );
+
+    if (user.length === 0) {
+      req.log?.warn({ email }, "Email not found");
+      return res.status(404).json({ error: "Email not found." });
+    }
+
+    await sequelize.query(
+      `UPDATE rrpm_user SET reset_token = :resetToken, reset_token_expiry = NOW() + INTERVAL 1 HOUR WHERE login = :email`,
+      { replacements: { email, resetToken }, type: sequelize.QueryTypes.UPDATE }
+    );
+
+    const deleteLink = `http://localhost:2111/auth/deleteAccount/${resetToken}`;
+    const html = `<div style="font-family: Arial, sans-serif; text-align: center;">
+      <h2>Delete Your RRPM Account ⚠️</h2>
+      <p>This action is irreversible. Click below to permanently delete your account:</p>
+      <a href="${deleteLink}" style="display: inline-block; padding: 12px 20px; font-size: 16px; font-weight: bold; color: white; background-color: #dc3545; border-radius: 6px; text-decoration: none;">Delete Account</a>
+    </div>`;
+
+    await sendMail(
+      email,
+      "Delete Your RRPM Account",
+      `Delete link: ${deleteLink}`,
+      html
+    );
+
+    res.json({ message: "Delete link sent if the email is registered." });
+  } catch (err) {
+    req.log?.error({ err, email }, "Error sending reset link");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/deleteAccount/:token", Limiter, async (req, res) => {
+  const { token } = req.params;
+
+  if (!token || typeof token !== "string") {
+    return res.status(400).send(renderPage("Invalid or missing token.", true));
+  }
+
+  try {
+    const user = await sequelize.query(
+      `SELECT id FROM rrpm_user 
+       WHERE reset_token = :token 
+       AND reset_token_expiry > NOW()`,
+      {
+        replacements: { token },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (user.length === 0) {
+      return res
+        .status(400)
+        .send(
+          renderPage("This account deletion link is invalid or expired.", true)
+        );
+    }
+
+    const userId = user[0].id;
+
+    await sequelize.query(
+      `UPDATE rrpm_user SET reset_token = NULL, reset_token_expiry = NULL WHERE id = :id`,
+      { replacements: { id: userId }, type: sequelize.QueryTypes.UPDATE }
+    );
+
+    // Delete user, cascades to cipher_passwords and user_2fa
+    await sequelize.query(`DELETE FROM rrpm_user WHERE id = :id`, {
+      replacements: { id: userId },
+      type: sequelize.QueryTypes.DELETE,
+    });
+
+    return res
+      .status(200)
+      .send(renderPage("Your account has been permanently deleted."));
+  } catch (error) {
+    console.error("Error during token-based account deletion:", error);
+    return res
+      .status(500)
+      .send(renderPage("An internal server error occurred.", true));
+  }
+});
+
 module.exports = router;
