@@ -9,6 +9,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const pinoHttp = require('pino-http');
 const logger = require('./logger');
+const path = require("path");
 // const bodyParser = require('body-parser');
 
 app.use(helmet());
@@ -61,6 +62,9 @@ app.use(cors({
 app.use(pinoHttp({ logger }));
 app.use('/api',router)
 app.use('/auth', auth);
+app.get('/auth/reset-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'reset-password.html'));
+});
 
 // app.get('/login', (req,res) => {
 

@@ -261,4 +261,48 @@ router.delete("/deleteAccount", verifyToken, Limiter, async (req, res) => {
   }
 });
 
+
+router.post("/request-password-reset", Limiter, async (req, res) => {
+  const { email } = req.body;
+  req.log?.info({ email }, "Password reset request");
+
+  if (!email || !validator.isEmail(email)) {
+    return res.status(400).json({ error: "Valid email is required." });
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  try {
+    const user = await sequelize.query(
+      "SELECT id FROM rrpm_user WHERE login = :email",
+      { replacements: { email }, type: sequelize.QueryTypes.SELECT }
+    );
+
+    if (user.length === 0) {
+      req.log?.warn({ email }, "Email not found");
+      return res.status(404).json({ error: "Email not found." });
+    }
+
+    await sequelize.query(
+      `UPDATE rrpm_user SET reset_token = :resetToken, reset_token_expiry = NOW() + INTERVAL 1 HOUR WHERE login = :email`,
+      { replacements: { email, resetToken }, type: sequelize.QueryTypes.UPDATE }
+    );
+
+    const resetLink = `http://localhost:2111/auth/reset-password?token=${resetToken}`;
+    const html = `<div style="font-family: Arial, sans-serif; text-align: center;">
+      <h2>Reset Your RRPM Password 🔒</h2>
+      <p>Click below to choose a new password:</p>
+      <a href="${resetLink}" style="display: inline-block; padding: 12px 20px; font-size: 16px; font-weight: bold; color: white; background-color: #dc3545; border-radius: 6px; text-decoration: none;">Reset Password</a>
+    </div>`;
+
+    await sendMail(email, "Reset Your Password", `Reset link: ${resetLink}`, html);
+
+    res.json({ message: "Reset link sent if the email is registered." });
+  } catch (err) {
+    req.log?.error({ err, email }, "Error sending reset link");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 module.exports = router;
