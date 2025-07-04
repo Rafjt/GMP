@@ -133,12 +133,17 @@ const unlockVault = async () => {
     }
   );
 };
+
+const handleForgottenPwd = async () => {
+  router.push('/forgottenPwd'); // Redirect to the login page or home after logout
+};
+
 </script>
 
 <template>
   <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
     <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
-    
+
     <div v-if="errorMessage" class="error-message text-red-500">{{ errorMessage }}</div>
     <div v-if="successMessage" class="success-message text-green-500">{{ successMessage }}</div>
 
@@ -177,6 +182,10 @@ const unlockVault = async () => {
           class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
         />
       </div>
+
+        <p class="mt-3">
+          <a @click="handleForgottenPwd">Forgot my password</a>
+        </p>
 
       <button
         type="submit"
