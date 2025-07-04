@@ -212,3 +212,9 @@ input:checked + .slider-round-tfa:before {
 .slider-round-tfa.round:before {
   border-radius: 50%;
 }
+
+.qr-code {
+  width: 200px;
+  height: 200px;
+  margin-top: 10px;
+}

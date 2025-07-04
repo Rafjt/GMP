@@ -2,6 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { changeMasterPassword, deleteAccount } from '../functions/general'
 import { isValidPassword } from '../functions/FormValidation'
+import QRCode from 'qrcode'
+
+const qrCodeUrl = ref('')
+const qrCodeDataUrl = ref('')
 
 const showPasswordFields = ref(false)
 const oldPassword = ref('')
@@ -52,7 +56,16 @@ const toggle2fa = async () => {
     const data = await response.json()
     if (data.success) {
       twoFaFeedback.value = data.message
-      await fetch2faStatus() // Refresh status
+      await fetch2faStatus()
+      // Si le backend retourne une URL otpauth (à faire sur ton backend)
+      if (data.otpauth_url) {
+        qrCodeUrl.value = data.otpauth_url
+        qrCodeDataUrl.value = await QRCode.toDataURL(data.otpauth_url)
+        console.log(qrCodeUrl.value);
+      } else {
+        qrCodeUrl.value = ''
+        qrCodeDataUrl.value = ''
+      }
     } else {
       twoFaFeedback.value = data.error || 'Operation failed.'
     }
@@ -61,6 +74,7 @@ const toggle2fa = async () => {
     twoFaFeedback.value = 'Unexpected error.'
   }
 }
+
 
 onMounted(() => {
   fetch2faStatus()
@@ -145,6 +159,10 @@ const handleDeleteAccount = async () => {
       </button>
       <p v-else class="customErrors">Failed to load 2FA status.</p>
       <p v-if="twoFaFeedback" class="customEvent">{{ twoFaFeedback }}</p>
+    </div>
+    <div v-if="qrCodeDataUrl">
+        <p>Scan this QR Code with your Authenticator app:</p>
+        <img :src="qrCodeDataUrl" alt="2FA QR Code" class="qr-code" />
     </div>
 
     <!-- Change password -->
