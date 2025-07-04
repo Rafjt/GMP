@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { changeMasterPassword, deleteAccount } from '../functions/general'
 import { isValidPassword } from '../functions/FormValidation'
 
@@ -16,6 +16,55 @@ const togglePasswordFields = () => {
   oldPassword.value = ''
   newPassword.value = ''
 }
+
+// 2FA Logic
+const twoFactorEnabled = ref(null)
+const twoFaFeedback = ref('')
+
+const fetch2faStatus = async () => {
+  try {
+    const response = await fetch(`https://rrpm.site/2fa/isEnabled`, {
+      method: "GET",
+      credentials: "include"
+    });
+    const data = await response.json()
+    console.log("2FA status:", data)
+    // Correction ici
+    if (Array.isArray(data) && data.length > 0 && 'enabled' in data[0]) {
+    twoFactorEnabled.value = data[0].enabled
+    } else {
+    twoFactorEnabled.value = null
+    }
+
+  } catch (error) {
+    console.error("Error fetching 2FA status:", error)
+    twoFactorEnabled.value = null
+  }
+}
+
+const toggle2fa = async () => {
+  try {
+    const endpoint = twoFactorEnabled.value === 1 ? 'disable' : 'enable'
+    const response = await fetch(`https://rrpm.site/2fa/${endpoint}`, {
+      method: "POST",
+      credentials: "include"
+    })
+    const data = await response.json()
+    if (data.success) {
+      twoFaFeedback.value = data.message
+      await fetch2faStatus() // Refresh status
+    } else {
+      twoFaFeedback.value = data.error || 'Operation failed.'
+    }
+  } catch (error) {
+    console.error("Error toggling 2FA:", error)
+    twoFaFeedback.value = 'Unexpected error.'
+  }
+}
+
+onMounted(() => {
+  fetch2faStatus()
+})
 
 const handlechangeMasterPassword = async () => {
   if (!oldPassword.value || !newPassword.value) {
@@ -62,7 +111,7 @@ const cancelDelete = () => {
 }
 
 const handleDeleteAccount = async () => {
-  console.log("DBG: frontend handler called");
+  console.log("DBG: frontend handler called")
   try {
     const result = await deleteAccount()
     if (result.success) {
@@ -85,6 +134,19 @@ const handleDeleteAccount = async () => {
 
 <template>
   <div class="setting-container">
+
+    <!-- 2FA Section -->
+    <div class="2fa">
+      <button 
+        v-if="twoFactorEnabled !== null" 
+        class="button-event" 
+        @click="toggle2fa">
+        {{ twoFactorEnabled === 1 ? 'Disable 2FA' : 'Enable 2FA' }}
+      </button>
+      <p v-else class="customErrors">Failed to load 2FA status.</p>
+      <p v-if="twoFaFeedback" class="customEvent">{{ twoFaFeedback }}</p>
+    </div>
+
     <!-- Change password -->
     <div class="password-change">
       <button class="button-event" @click="togglePasswordFields">
@@ -94,7 +156,6 @@ const handleDeleteAccount = async () => {
       <div v-if="showPasswordFields" class="mt-4 space-y-2">
         <label for="old-password" class="old-new-password-label">Old password</label>
         <input v-model="oldPassword" type="password" autocomplete="off" />
-
 
         <label for="new-password" class="old-new-password-label">New password</label>
         <input v-model="newPassword" type="password" autocomplete="off" />

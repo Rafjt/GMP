@@ -149,13 +149,23 @@ router.get("/verify-email", Limiter, async (req, res) => {
       { replacements: { id: user.id, salt }, type: sequelize.QueryTypes.UPDATE }
     );
 
-    req.log?.info({ userId: user.id }, 'Email verified successfully');
+    // 🟢 Crée l'entrée 2FA pour l'utilisateur (enabled à 0)
+    await sequelize.query(
+      `INSERT IGNORE INTO user_2fa (user_id, enabled, ciphered_secret_totp) 
+      VALUES (:id, 0, '')`,
+      { replacements: { id: user.id }, type: sequelize.QueryTypes.INSERT }
+    );
+
+
+    req.log?.info({ userId: user.id }, 'Email verified and 2FA entry created');
     return res.send(renderPage("✅ Email verified successfully. You can now log in."));
   } catch (error) {
     req.log?.error({ err: error }, 'Error during email verification');
     return res.status(500).send(renderPage("Internal server error", true));
   }
 });
+
+
 
 router.post("/login", Limiter, async (req, res) => {
   const { email, password } = req.body;

@@ -51,6 +51,7 @@ const login = async () => {
   isSubmitting.value = true;
 
   try {
+    // USE BCRYPT HERE
     const loginResponse = await loginUser(email.value, password.value);
     if (loginResponse.error) {
       errorMessage.value = safeMessage(loginResponse.error);
