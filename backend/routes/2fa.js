@@ -51,6 +51,26 @@ function encrypt(text, key) {
   });
 }
 
+
+function decrypt(encryptedData, key) {
+  const { iv, content, tag } = JSON.parse(encryptedData);
+  const keyBuffer = Buffer.from(key, "hex");
+  if (keyBuffer.length !== 32) {
+    throw new Error("Invalid key length. Expected 32 bytes for AES-256-GCM");
+  }
+
+  const decipher = crypto.createDecipheriv("aes-256-gcm", keyBuffer, Buffer.from(iv, "hex"));
+  decipher.setAuthTag(Buffer.from(tag, "hex"));
+
+  const decrypted = Buffer.concat([
+    decipher.update(Buffer.from(content, "hex")),
+    decipher.final(),
+  ]);
+
+  return decrypted.toString("utf8");
+}
+
+
 // Route : vérifier si 2FA activé
 router.get("/isEnabled", verifyToken, async (req, res) => {
   const id = req.user.id;
@@ -133,5 +153,40 @@ router.post("/disable", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+router.post('/verify-2fa', async (req, res) => {
+  const { userId, code } = req.body;
+
+  const [result] = await sequelize.query(
+    "SELECT ciphered_secret_TOTP FROM user_2fa WHERE user_id = :id",
+    {
+      replacements: { id: userId },
+      type: QueryTypes.SELECT,
+    }
+  );
+
+  if (!result) {
+    return res.status(404).json({ success: false, error: 'User not found' });
+  }
+
+  // Déchiffrer la clé secrète :
+  const decrypted = decrypt(result.ciphered_secret_TOTP, TOTP_MASTER_KEY);
+  
+  const verified = speakeasy.totp.verify({
+    secret: decrypted,
+    encoding: 'base32',
+    token: code,
+  });
+
+  if (verified) {
+    // 2FA validé → générer token JWT + login réussi
+    const token = jwt.sign({ id: userId }, SECRET_KEY, { expiresIn: "1h" });
+    res.cookie("token", token, { httpOnly: true });
+    res.json({ success: true, message: '2FA validated, login successful' });
+  } else {
+    res.status(400).json({ success: false, error: 'Invalid 2FA code' });
+  }
+});
+
 
 module.exports = router;

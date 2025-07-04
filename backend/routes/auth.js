@@ -200,6 +200,18 @@ router.post("/login", Limiter, async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // Vérifier si le 2FA est activé
+    const [twoFaResult] = await sequelize.query(
+      "SELECT enabled FROM user_2fa WHERE user_id = ?",
+      { replacements: [id], type: QueryTypes.SELECT }
+    );
+
+    if (twoFaResult && twoFaResult.enabled) {
+      // 2FA requis → demande de code TOTP
+      return res.json({ message: "2FA required", twoFactorRequired: true, userId: id });
+    }
+
+    // Pas de 2FA → connexion immédiate
     const token = jwt.sign({ id, login }, SECRET_KEY, { expiresIn: "1h" });
 
     req.log?.info({ userId: id }, 'Login successful');
@@ -216,6 +228,7 @@ router.post("/login", Limiter, async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 router.get('/me', verifyToken, (req, res) => {
   const token = req.cookies.token;
