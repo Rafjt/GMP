@@ -61,8 +61,8 @@ const initCreatePassword = async () => {
   try {
     const encrypted = await encrypt(value.value)
     const cleanName = clean(name.value)
-    const cleanDesc = clean(description.value)
-    const cleanUrl = clean(url.value)
+    const cleanDesc = description.value ? clean(description.value) : null
+    const cleanUrl = url.value ? clean(url.value) : null
 
     let result
     if (mode.value === 'edit') {
