@@ -3,6 +3,7 @@ const app = express();
 const PORT = 2111;
 router = require('./routes/api')
 const auth = require('./routes/auth');
+const TwoFa = require('./routes/2fa');
 const sequelize = require('./database');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -61,6 +62,7 @@ app.use(cors({
 app.use(pinoHttp({ logger }));
 app.use('/api',router)
 app.use('/auth', auth);
+app.use('/2fa',TwoFa);
 
 // app.get('/login', (req,res) => {
 
