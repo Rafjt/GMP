@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { createPassword, updatePassword, pullPassword } from '../functions/general'
 import { encrypt, decrypt } from '@/crypto/encryption'
-import { isValidPassword } from '@/functions/FormValidation'
+import { isValidPassword,isValidHttpsDomainOnlyUrl } from '@/functions/FormValidation'
 import DOMPurify from 'dompurify'
 
 const name = ref('')
@@ -62,7 +62,13 @@ const initCreatePassword = async () => {
     const encrypted = await encrypt(value.value)
     const cleanName = clean(name.value)
     const cleanDesc = clean(description.value)
-    const cleanUrl = clean(url.value)
+    let cleanUrl = clean(url.value)
+
+    if (!isValidHttpsDomainOnlyUrl(cleanUrl)) {
+      passwordError.value = "Invalid URL. Only HTTPS domains without path are allowed.";
+      isLoading.value = false;
+      return;
+    }
 
     let result
     if (mode.value === 'edit') {
