@@ -51,11 +51,35 @@ const login = async () => {
   isSubmitting.value = true;
 
   try {
-    // USE BCRYPT HERE
     const loginResponse = await loginUser(email.value, password.value);
+    
     if (loginResponse.error) {
       errorMessage.value = safeMessage(loginResponse.error);
       return;
+    }
+
+    if (loginResponse.twoFactorRequired) {
+      const code = prompt("Enter your 2FA code");
+      if (!code) {
+        errorMessage.value = "2FA code is required.";
+        return;
+      }
+
+      const verifyResponse = await fetch('https://rrpm.site/2fa/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: loginResponse.userId,
+          code: code.trim(),
+        }),
+      }).then(r => r.json());
+
+      if (!verifyResponse.success) {
+        errorMessage.value = safeMessage(verifyResponse.error || '2FA verification failed.');
+        return;
+      }
+
+      successMessage.value = "2FA successful. Logging in...";
     }
 
     const saltResponse = await getSalt();
@@ -88,6 +112,7 @@ const login = async () => {
     isSubmitting.value = false;
   }
 };
+
 </script>
 
 <template>
