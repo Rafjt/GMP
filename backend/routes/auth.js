@@ -308,7 +308,8 @@ router.post("/request-password-reset", Limiter, async (req, res) => {
       { replacements: { email, resetToken }, type: sequelize.QueryTypes.UPDATE }
     );
 
-    const deleteLink = `http://localhost:2111/auth/deleteAccount/${resetToken}`;
+
+    const deleteLink = `https://rrpm.site/auth/deleteAccount/${resetToken}`;
     const html = `<div style="font-family: Arial, sans-serif; text-align: center;">
       <h2>Delete Your RRPM Account ⚠️</h2>
       <p>This action is irreversible. Click below to permanently delete your account:</p>

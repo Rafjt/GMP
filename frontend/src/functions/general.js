@@ -296,7 +296,7 @@ async function toggle2faApi(enabled) {
 }
 
 async function sendResetEmail(email) {
-  return fetch('/api/request-password-reset', {
+  return fetch(`${API_AUTH_URL}/request-password-reset`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email })
