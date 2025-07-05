@@ -99,7 +99,6 @@ router.get("/isEnabled", verifyToken, Limiter, async (req, res) => {
 router.post("/enable", verifyToken, Limiter, async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log("Utilisateur connecté :", req.user);
 
     if (!userId) {
       return res.status(401).json({ success: false, error: "Unauthorized" });
@@ -109,8 +108,6 @@ router.post("/enable", verifyToken, Limiter, async (req, res) => {
       name: `Rrpm (${req.user.login})`,
     });
 
-    console.log("Secret généré :", secret);
-    console.log("Clé de chiffrement maître :", TOTP_MASTER_KEY);
 
     const encryptedSecret = encrypt(secret.base32, TOTP_MASTER_KEY);
     await sequelize.query(

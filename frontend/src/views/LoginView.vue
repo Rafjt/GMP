@@ -126,7 +126,6 @@ const unlockVault = async () => {
         console.error("Runtime error:", chrome.runtime.lastError.message);
         errorMessage.value = safeMessage("Background communication failed.");
       } else if (res.success) {
-        console.log("Vault unlocked");
         router.push("/welcome");
       } else {
         errorMessage.value = safeMessage("Key derivation failed.");

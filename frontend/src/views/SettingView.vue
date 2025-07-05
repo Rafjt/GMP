@@ -103,7 +103,6 @@ const cancelDelete = () => {
 }
 
 const handleDeleteAccount = async () => {
-  console.log("DBG: frontend handler called")
   try {
     const result = await deleteAccount()
     if (result.success) {
