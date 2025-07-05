@@ -223,7 +223,6 @@ async function changeMasterPassword(oldPassword, newPassword) {
 }
 
 async function deleteAccount() {
-  console.log("DBG: deleteAccount() has been called")
   try {
     const response = await fetch(`${API_AUTH_URL}/deleteAccount`, {
       method: 'DELETE',

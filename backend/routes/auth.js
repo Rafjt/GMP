@@ -26,15 +26,12 @@ const verifyToken = (req, res, next) => {
         req.log?.info({ userId: decoded.id }, 'JWT verified successfully');
         next(); // on passe à la route suivante
     } catch (err) {
-        // Gestion des erreurs
         req.log?.warn({ err }, 'JWT verification failed');
         if (err.name === 'TokenExpiredError') {
             return res.status(401).json({ error: 'Token expired' });
         } else if (err.name === 'JsonWebTokenError') {
             return res.status(401).json({ error: 'Invalid token' });
         }
-
-        // Erreur inattendue
         return res.status(500).json({ error: 'Token verification failed' });
     }
 };

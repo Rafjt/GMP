@@ -43,7 +43,6 @@ async function handleUnlock(message, sendResponse) {
   try {
     const key = await deriveKey(password, salt);
     cachedKey = key;
-    console.log("Key derived and in cache.");
     respond(sendResponse, true);
   } catch (err) {
     console.error("Error when deriving key:", err);
@@ -54,7 +53,6 @@ async function handleUnlock(message, sendResponse) {
 //Handler LOCK
 function handleLock(sendResponse) {
   cachedKey = null;
-  console.log("Key erased from cache");
   respond(sendResponse, true);
 }
 
@@ -65,7 +63,6 @@ function handleGetKey(sendResponse) {
     return respond(sendResponse, false, { error: "Encryption key not found in memory." });
   }
 
-  console.log("Key found and returned");
   respond(sendResponse, true, { key: cachedKey });
 }
 
@@ -100,13 +97,12 @@ async function handleEncrypt(message, sendResponse) {
 
 //Handler DECRYPT
 async function handleDecrypt(message, sendResponse) {
-  console.log("DBG: IN DECRYPT HANDLER")
   if (!cachedKey) {
     return respond(sendResponse, false, { error: "Key is missing." });
   }
 
   try {
-    console.log("DBG: BEGINNING TRY");
+
     const combined = Uint8Array.from(atob(message.cipherText), c => c.charCodeAt(0));
     const iv = combined.slice(0, 12);
     const data = combined.slice(12);
@@ -161,5 +157,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false;
   }
 });
-
-console.log("🔧 Service worker loaded.");
