@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { changeMasterPassword, deleteAccount } from '../functions/general'
+import { changeMasterPassword, deleteAccount, fetch2faStatusApi, toggle2faApi } from '../functions/general'
 import { isValidPassword } from '../functions/FormValidation'
 import QRCode from 'qrcode'
 
@@ -26,55 +26,31 @@ const twoFactorEnabled = ref(null)
 const twoFaFeedback = ref('')
 
 const fetch2faStatus = async () => {
-  try {
-    const response = await fetch(`https://rrpm.site/2fa/isEnabled`, {
-      method: "GET",
-      credentials: "include"
-    });
-    const data = await response.json()
-    console.log("2FA status:", data)
-    // Correction ici
-    if (Array.isArray(data) && data.length > 0 && 'enabled' in data[0]) {
-    twoFactorEnabled.value = data[0].enabled
-    } else {
-    twoFactorEnabled.value = null
-    }
-
-  } catch (error) {
-    console.error("Error fetching 2FA status:", error)
-    twoFactorEnabled.value = null
+  const result = await fetch2faStatusApi();
+  if (result.error) {
+    console.error("Error fetching 2FA status:", result.error);
+    twoFactorEnabled.value = null;
+  } else {
+    twoFactorEnabled.value = result.enabled;
   }
 }
 
 const toggle2fa = async () => {
-  try {
-    const endpoint = twoFactorEnabled.value === 1 ? 'disable' : 'enable'
-    const response = await fetch(`https://rrpm.site/2fa/${endpoint}`, {
-      method: "POST",
-      credentials: "include"
-    })
-    const data = await response.json()
-    if (data.success) {
-      twoFaFeedback.value = data.message
-      await fetch2faStatus()
-      // Si le backend retourne une URL otpauth (à faire sur ton backend)
-      if (data.otpauth_url) {
-        qrCodeUrl.value = data.otpauth_url
-        qrCodeDataUrl.value = await QRCode.toDataURL(data.otpauth_url)
-        console.log(qrCodeUrl.value);
-      } else {
-        qrCodeUrl.value = ''
-        qrCodeDataUrl.value = ''
-      }
+  const data = await toggle2faApi(twoFactorEnabled.value);
+  if (data.success) {
+    twoFaFeedback.value = data.message;
+    await fetch2faStatus();
+    if (data.otpauth_url) {
+      qrCodeUrl.value = data.otpauth_url;
+      qrCodeDataUrl.value = await QRCode.toDataURL(data.otpauth_url);
     } else {
-      twoFaFeedback.value = data.error || 'Operation failed.'
+      qrCodeUrl.value = '';
+      qrCodeDataUrl.value = '';
     }
-  } catch (error) {
-    console.error("Error toggling 2FA:", error)
-    twoFaFeedback.value = 'Unexpected error.'
+  } else {
+    twoFaFeedback.value = data.error || 'Operation failed.';
   }
 }
-
 
 onMounted(() => {
   fetch2faStatus()

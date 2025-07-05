@@ -1,6 +1,7 @@
-import { API_AUTH_URL,API_BASE_URL } from "../components/constant.js";
+import { API_AUTH_URL,API_BASE_URL,API_2FA_URL } from "../components/constant.js";
 export { logout,generatePassword,pullPassword,deletePassword,createPassword,
-    loginUser,getSalt,updatePassword,changeMasterPassword,deleteAccount };
+    loginUser,getSalt,updatePassword,changeMasterPassword,deleteAccount,fetch2faStatusApi,
+    verify2FACode, toggle2faApi };
 
 async function pullPassword() {
     try {
@@ -247,3 +248,50 @@ async function deleteAccount() {
   }
 }
 
+
+async function verify2FACode(userId, code) {
+  try {
+    const response = await fetch(`${API_2FA_URL}/verify-2fa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        code: code.trim(),
+      }),
+    });
+    return await response.json();
+  } catch (err) {
+    return { success: false, error: "Server error." };
+  }
+}
+
+
+async function fetch2faStatusApi() {
+  try {
+    const response = await fetch(`${API_2FA_URL}/isEnabled`, {
+      method: "GET",
+      credentials: "include"
+    });
+    const data = await response.json();
+    if (Array.isArray(data) && data.length > 0 && 'enabled' in data[0]) {
+      return { enabled: data[0].enabled };
+    } else {
+      return { enabled: null, error: "Malformed response" };
+    }
+  } catch (error) {
+    return { enabled: null, error: error.message || "Network error" };
+  }
+}
+
+async function toggle2faApi(enabled) {
+  try {
+    const endpoint = enabled === 1 ? 'disable' : 'enable';
+    const response = await fetch(`${API_2FA_URL}/${endpoint}`, {
+      method: "POST",
+      credentials: "include"
+    });
+    return await response.json();
+  } catch (error) {
+    return { success: false, error: error.message || "Network error" };
+  }
+}
