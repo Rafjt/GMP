@@ -120,7 +120,7 @@ router.post("/enable", verifyToken, Limiter, async (req, res) => {
 
     res.json({
       success: true,
-      message: "2FA activé. Scanne le QR Code.",
+      message: "2FA enabled. Scan this QR Code.",
       otpauth_url: secret.otpauth_url,
     });
   } catch (err) {
@@ -145,7 +145,7 @@ router.post("/disable", verifyToken, Limiter, async (req, res) => {
         type: QueryTypes.UPDATE,
       }
     );
-    res.json({ success: true, message: "2FA désactivé avec succès" });
+    res.json({ success: true, message: "2FA successfuly disabled" });
   } catch (error) {
     console.error("Error disabling 2FA:", error);
     res.status(500).json({ error: "Internal server error" });
