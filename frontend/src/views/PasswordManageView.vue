@@ -25,7 +25,6 @@ const passwordId = ref(Number(route.query.id) || null)
 onMounted(async () => {
   if (mode.value === 'edit' && passwordId.value) {
     const allPasswords = await pullPassword()
-    console.log(allPasswords)
     const pwd = allPasswords.find(p => p.id === Number(passwordId.value))
 
     if (pwd) {

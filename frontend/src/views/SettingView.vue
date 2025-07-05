@@ -1,7 +1,13 @@
 <script setup>
-import { ref } from 'vue'
-import { changeMasterPassword, deleteAccount } from '../functions/general'
+import { ref, onMounted } from 'vue'
+import { changeMasterPassword, deleteAccount, fetch2faStatusApi, toggle2faApi } from '../functions/general'
 import { isValidPassword } from '../functions/FormValidation'
+import { useRouter } from 'vue-router';
+import QRCode from 'qrcode'
+
+const qrCodeUrl = ref('')
+const qrCodeDataUrl = ref('')
+const router = useRouter();
 
 const showPasswordFields = ref(false)
 const oldPassword = ref('')
@@ -16,6 +22,41 @@ const togglePasswordFields = () => {
   oldPassword.value = ''
   newPassword.value = ''
 }
+
+// 2FA Logic
+const twoFactorEnabled = ref(null)
+const twoFaFeedback = ref('')
+
+const fetch2faStatus = async () => {
+  const result = await fetch2faStatusApi();
+  if (result.error) {
+    console.error("Error fetching 2FA status:", result.error);
+    twoFactorEnabled.value = null;
+  } else {
+    twoFactorEnabled.value = result.enabled;
+  }
+}
+
+const toggle2fa = async () => {
+  const data = await toggle2faApi(twoFactorEnabled.value);
+  if (data.success) {
+    twoFaFeedback.value = data.message;
+    await fetch2faStatus();
+    if (data.otpauth_url) {
+      qrCodeUrl.value = data.otpauth_url;
+      qrCodeDataUrl.value = await QRCode.toDataURL(data.otpauth_url);
+    } else {
+      qrCodeUrl.value = '';
+      qrCodeDataUrl.value = '';
+    }
+  } else {
+    twoFaFeedback.value = data.error || 'Operation failed.';
+  }
+}
+
+onMounted(() => {
+  fetch2faStatus()
+})
 
 const handlechangeMasterPassword = async () => {
   if (!oldPassword.value || !newPassword.value) {
@@ -62,7 +103,6 @@ const cancelDelete = () => {
 }
 
 const handleDeleteAccount = async () => {
-  console.log("DBG: frontend handler called");
   try {
     const result = await deleteAccount()
     if (result.success) {
@@ -70,7 +110,7 @@ const handleDeleteAccount = async () => {
       isDeleteError.value = false
       // Redirect to homepage after account deletion
       setTimeout(() => {
-        window.location.href = '/'
+        router.push('/login');
       }, 1000)
     } else {
       deleteFeedback.value = result.error || 'Deletion failed.'
@@ -85,6 +125,23 @@ const handleDeleteAccount = async () => {
 
 <template>
   <div class="setting-container">
+
+    <!-- 2FA Section -->
+    <div class="2fa">
+      <button 
+        v-if="twoFactorEnabled !== null" 
+        class="button-event" 
+        @click="toggle2fa">
+        {{ twoFactorEnabled === 1 ? 'Disable 2FA' : 'Enable 2FA' }}
+      </button>
+      <p v-else class="customErrors">Failed to load 2FA status.</p>
+      <p v-if="twoFaFeedback" class="customEvent">{{ twoFaFeedback }}</p>
+    </div>
+    <div v-if="qrCodeDataUrl">
+        <p>Scan this QR Code with your Authenticator app:</p>
+        <img :src="qrCodeDataUrl" alt="2FA QR Code" class="qr-code" />
+    </div>
+
     <!-- Change password -->
     <div class="password-change">
       <button class="button-event" @click="togglePasswordFields">
@@ -94,7 +151,6 @@ const handleDeleteAccount = async () => {
       <div v-if="showPasswordFields" class="mt-4 space-y-2">
         <label for="old-password" class="old-new-password-label">Old password</label>
         <input v-model="oldPassword" type="password" autocomplete="off" />
-
 
         <label for="new-password" class="old-new-password-label">New password</label>
         <input v-model="newPassword" type="password" autocomplete="off" />

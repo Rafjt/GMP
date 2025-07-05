@@ -2,20 +2,23 @@
 import { computed, watch, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
-import { loginUser, getSalt } from '@/functions/general';
+import { loginUser, getSalt, verify2FACode } from '@/functions/general';
 import { isValidEmail, isValidPassword } from '@/functions/FormValidation';
 import DOMPurify from 'dompurify';
 
 const { refreshAuth } = useAuth();
 const email = ref('');
 const password = ref('');
+const twoFactorCode = ref('');
+const is2FARequired = ref(false);
+const pendingUserId = ref(null);
+
 const router = useRouter();
 const errorMessage = ref('');
 const successMessage = ref('');
 const isSubmitting = ref(false);
 const touchedFields = ref({ email: false, password: false });
 
-// Fonction de nettoyage centralisée
 const safeMessage = (msg) => DOMPurify.sanitize(msg || "Unexpected error");
 
 watch(email, () => {
@@ -35,8 +38,10 @@ watch(MissingFieldError, (newValue) => {
   errorMessage.value = newValue;
 });
 
+const isValid2FACode = (code) => /^[0-9]{6}$/.test(code);
+
 const login = async () => {
-  errorMessage.value = ''; // reset previous errors
+  errorMessage.value = '';
 
   if (!isValidEmail(email.value)) {
     errorMessage.value = safeMessage("Invalid email format.");
@@ -52,34 +57,20 @@ const login = async () => {
 
   try {
     const loginResponse = await loginUser(email.value, password.value);
+
     if (loginResponse.error) {
       errorMessage.value = safeMessage(loginResponse.error);
       return;
     }
 
-    const saltResponse = await getSalt();
-    if (saltResponse.error) {
-      errorMessage.value = safeMessage(saltResponse.error);
+    if (loginResponse.twoFactorRequired) {
+      is2FARequired.value = true;
+      pendingUserId.value = loginResponse.userId;
+      successMessage.value = "2FA required. Please enter your authentication code.";
       return;
     }
 
-    const salt = saltResponse.salt;
-
-    console.log("GONNA CALL UNLOCK");
-    chrome.runtime.sendMessage(
-      { type: 'UNLOCK', password: password.value, salt },
-      (res) => {
-        if (chrome.runtime.lastError) {
-          console.error("Runtime error:", chrome.runtime.lastError.message);
-          errorMessage.value = safeMessage("Background communication failed.");
-        } else if (res.success) {
-          console.log("Vault unlocked");
-          router.push("/welcome");
-        } else {
-          errorMessage.value = safeMessage("Key derivation failed.");
-        }
-      }
-    );
+    await unlockVault();
   } catch (err) {
     console.error(err);
     errorMessage.value = safeMessage("Server error.");
@@ -87,16 +78,71 @@ const login = async () => {
     isSubmitting.value = false;
   }
 };
+
+const verify2FA = async () => {
+  if (!twoFactorCode.value) {
+    errorMessage.value = "2FA code is required.";
+    return;
+  }
+
+  isSubmitting.value = true;
+
+  try {
+    const verifyResponse = await verify2FACode(pendingUserId.value, twoFactorCode.value);
+
+    if (!verifyResponse.success) {
+      errorMessage.value = safeMessage(verifyResponse.error || '2FA verification failed.');
+      return;
+    }
+
+    if (!isValid2FACode(twoFactorCode.value)) {
+      errorMessage.value = "2FA code must be exactly 6 digits (0-9).";
+      return;
+    }
+
+    successMessage.value = "2FA successful. Logging in...";
+    await unlockVault();
+  } catch (err) {
+    console.error(err);
+    errorMessage.value = safeMessage("Server error.");
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const unlockVault = async () => {
+  const saltResponse = await getSalt();
+  if (saltResponse.error) {
+    errorMessage.value = safeMessage(saltResponse.error);
+    return;
+  }
+
+  const salt = saltResponse.salt;
+
+  chrome.runtime.sendMessage(
+    { type: 'UNLOCK', password: password.value, salt },
+    (res) => {
+      if (chrome.runtime.lastError) {
+        console.error("Runtime error:", chrome.runtime.lastError.message);
+        errorMessage.value = safeMessage("Background communication failed.");
+      } else if (res.success) {
+        router.push("/welcome");
+      } else {
+        errorMessage.value = safeMessage("Key derivation failed.");
+      }
+    }
+  );
+};
 </script>
 
 <template>
   <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
     <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
     
-    <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-    <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
+    <div v-if="errorMessage" class="error-message text-red-500">{{ errorMessage }}</div>
+    <div v-if="successMessage" class="success-message text-green-500">{{ successMessage }}</div>
 
-    <form @submit.prevent="login">
+    <form @submit.prevent="is2FARequired ? verify2FA() : login()">
       <div class="mb-4">
         <label for="email" class="block text-sm font-medium mb-1">Email</label>
         <input
@@ -105,6 +151,7 @@ const login = async () => {
           id="email"
           required
           class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
+          :disabled="is2FARequired"
         />
       </div>
 
@@ -116,6 +163,18 @@ const login = async () => {
           id="password"
           required
           class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
+          :disabled="is2FARequired"
+        />
+      </div>
+
+      <div v-if="is2FARequired" class="mb-4">
+        <label for="twoFactorCode" class="block text-sm font-medium mb-1">2FA Code</label>
+        <input
+          v-model="twoFactorCode"
+          type="text"
+          id="twoFactorCode"
+          required
+          class="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -124,7 +183,7 @@ const login = async () => {
         class="button-2 w-full"
         :disabled="isSubmitting"
       >
-        {{ isSubmitting ? "Logging in..." : "Login" }}
+        {{ isSubmitting ? "Processing..." : is2FARequired ? "Verify 2FA" : "Login" }}
       </button>
     </form>
   </div>

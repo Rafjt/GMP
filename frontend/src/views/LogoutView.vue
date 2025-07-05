@@ -6,7 +6,6 @@ const router = useRouter();
 
 const handleLogout = async () => {
     chrome.runtime.sendMessage({ type: 'LOCK' }, () => {
-    console.log("Vault locked");
   });
 
   await performLogout(); // Call the imported logout function
