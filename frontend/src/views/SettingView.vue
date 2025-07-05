@@ -2,10 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { changeMasterPassword, deleteAccount, fetch2faStatusApi, toggle2faApi } from '../functions/general'
 import { isValidPassword } from '../functions/FormValidation'
+import { useRouter } from 'vue-router';
 import QRCode from 'qrcode'
 
 const qrCodeUrl = ref('')
 const qrCodeDataUrl = ref('')
+const router = useRouter();
 
 const showPasswordFields = ref(false)
 const oldPassword = ref('')
@@ -109,7 +111,7 @@ const handleDeleteAccount = async () => {
       isDeleteError.value = false
       // Redirect to homepage after account deletion
       setTimeout(() => {
-        window.location.href = '/'
+        router.push('/login');
       }, 1000)
     } else {
       deleteFeedback.value = result.error || 'Deletion failed.'

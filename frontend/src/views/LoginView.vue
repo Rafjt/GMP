@@ -38,7 +38,7 @@ watch(MissingFieldError, (newValue) => {
   errorMessage.value = newValue;
 });
 
-const isValid2FACode = (code) => /^[1-9]{6}$/.test(code);
+const isValid2FACode = (code) => /^[0-9]{6}$/.test(code);
 
 const login = async () => {
   errorMessage.value = '';
@@ -96,7 +96,7 @@ const verify2FA = async () => {
     }
 
     if (!isValid2FACode(twoFactorCode.value)) {
-      errorMessage.value = "2FA code must be exactly 6 digits (1-9).";
+      errorMessage.value = "2FA code must be exactly 6 digits (0-9).";
       return;
     }
 
