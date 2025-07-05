@@ -26,7 +26,6 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-  console.log('route guard triggered');
 
   await refreshAuth(); // met à jour isAuthenticated et chrome.storage.sync
   next();
