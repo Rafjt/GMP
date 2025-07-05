@@ -2,7 +2,7 @@
 import { computed, watch, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
-import { loginUser, getSalt } from '@/functions/general';
+import { loginUser, getSalt, verify2FACode } from '@/functions/general';
 import { isValidEmail, isValidPassword } from '@/functions/FormValidation';
 import DOMPurify from 'dompurify';
 
@@ -86,14 +86,7 @@ const verify2FA = async () => {
   isSubmitting.value = true;
 
   try {
-    const verifyResponse = await fetch('https://rrpm.site/2fa/verify-2fa', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: pendingUserId.value,
-        code: twoFactorCode.value.trim(),
-      }),
-    }).then(r => r.json());
+    const verifyResponse = await verify2FACode(pendingUserId.value, twoFactorCode.value);
 
     if (!verifyResponse.success) {
       errorMessage.value = safeMessage(verifyResponse.error || '2FA verification failed.');
