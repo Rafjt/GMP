@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
 const { QueryTypes } = require("sequelize");
+const { Limiter } = require('../functions')
 
 const SECRET_KEY = process.env.JWT_SECRET;
 const TOTP_MASTER_KEY = process.env.TOTP_MASTER_KEY;
@@ -72,7 +73,7 @@ function decrypt(encryptedData, key) {
 
 
 // Route : vérifier si 2FA activé
-router.get("/isEnabled", verifyToken, async (req, res) => {
+router.get("/isEnabled", verifyToken, Limiter, async (req, res) => {
   const id = req.user.id;
 
   if (!id) {
@@ -95,7 +96,7 @@ router.get("/isEnabled", verifyToken, async (req, res) => {
 });
 
 // Route : activer 2FA
-router.post("/enable", verifyToken, async (req, res) => {
+router.post("/enable", verifyToken, Limiter, async (req, res) => {
   try {
     const userId = req.user.id;
     console.log("Utilisateur connecté :", req.user);
@@ -132,7 +133,7 @@ router.post("/enable", verifyToken, async (req, res) => {
 });
 
 // Route : désactiver 2FA
-router.post("/disable", verifyToken, async (req, res) => {
+router.post("/disable", verifyToken, Limiter, async (req, res) => {
   const id = req.user.id;
 
   if (!id) {
@@ -181,7 +182,11 @@ router.post('/verify-2fa', async (req, res) => {
   if (verified) {
     // 2FA validé → générer token JWT + login réussi
     const token = jwt.sign({ id: userId }, SECRET_KEY, { expiresIn: "1h" });
-    res.cookie("token", token, { httpOnly: true });
+    res.cookie("token", token, { 
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+    });
     res.json({ success: true, message: '2FA validated, login successful' });
   } else {
     res.status(400).json({ success: false, error: 'Invalid 2FA code' });
