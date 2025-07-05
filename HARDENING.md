@@ -255,3 +255,284 @@ function generateDeterministicIV(counter) {
 }
 ```
 
+---
+
+# 📄 Authentification Login + 2FA + JWT (Documentation Technique)
+
+## 📝 Objectif
+
+Mettre en place une authentification sécurisée avec :
+
+* Login classique (email + mot de passe)
+* Authentification à deux facteurs (2FA) optionnelle
+* Gestion sécurisée du token JWT selon le contexte (avec/sans 2FA)
+
+---
+
+## 🔄 Flux global
+
+1. L'utilisateur tente de se connecter avec son email et son mot de passe.
+2. Si l'utilisateur n'a **pas activé le 2FA** :
+
+   * Le backend valide les identifiants.
+   * Génère immédiatement un **JWT** (valable 1h).
+   * Le JWT est envoyé dans un **cookie sécurisé** (`httpOnly` + `secure`).
+   * L'utilisateur est connecté.
+3. Si l'utilisateur a activé le 2FA :
+
+   * Le backend valide les identifiants.
+   * Répond en demandant le code 2FA :
+
+     ```json
+     { "twoFactorRequired": true, "userId": ID }
+     ```
+   * L'utilisateur entre son code 2FA.
+   * Si le code est correct :
+
+     * Le backend génère et renvoie le **JWT** dans le cookie sécurisé.
+     * L'utilisateur est connecté.
+
+---
+
+## 🗂️ Résumé par endpoint
+
+### POST `/login`
+
+* Vérifie l'email et le mot de passe.
+* Si 2FA désactivé → envoie immédiatement le JWT dans un cookie.
+* Si 2FA activé → ne génère pas de JWT, mais demande le code 2FA.
+
+**Réponses possibles :**
+
+```json
+// Sans 2FA (login OK) :
+{ "message": "Login successful", "token": "..." }
+
+// Avec 2FA requis :
+{ "message": "2FA required", "twoFactorRequired": true, "userId": 123 }
+```
+
+---
+
+### POST `/verify-2fa`
+
+* Vérifie le code 2FA pour l’utilisateur.
+* Si OK → génère le JWT dans un cookie sécurisé.
+
+**Réponse :**
+
+```json
+{ "success": true, "message": "2FA validated, login successful" }
+```
+
+---
+
+## 🔑 Gestion du JWT
+
+| Cas                          | JWT Généré Dans |
+| ---------------------------- | --------------- |
+| Sans 2FA                     | `/login`        |
+| Avec 2FA (après succès code) | `/verify-2fa`   |
+
+---
+
+## 🔒 Sécurité du JWT
+
+* Stocké dans un **cookie HTTP-only** :
+
+```js
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "None",
+  maxAge: 3600000, // 1h
+});
+```
+
+---
+
+## 💻 Workflow Frontend (Vue 3)
+
+### Étapes :
+
+1. L’utilisateur soumet le formulaire de login.
+2. Si réponse `"twoFactorRequired"`, on demande le code 2FA.
+3. Sinon → login direct.
+4. Après succès 2FA → login final + déblocage du coffre.
+
+### Code principal (Vue) :
+
+```js
+if (loginResponse.twoFactorRequired) {
+  is2FARequired.value = true;
+  pendingUserId.value = loginResponse.userId;
+} else {
+  await unlockVault();
+}
+```
+
+---
+
+## 📦 Résumé des avantages
+
+* 🔐 **Sécurisé** : JWT attribué uniquement si l'utilisateur est bien authentifié (mot de passe + 2FA si activé).
+* 🎯 **Flexible** : S’adapte à chaque utilisateur selon son statut 2FA.
+* 📄 **Standard** : Fonctionnement conforme aux pratiques modernes (JWT + cookie HTTP-only + 2FA).
+
+---
+
+## ✅ Conseils
+
+* Toujours bien configurer `secure: true` (requiert HTTPS).
+* Nettoyer correctement les messages d'erreur (prévention XSS).
+* Bien logguer les tentatives d'échec côté serveur.
+
+---
+
+Voici la documentation complète en **Markdown** du workflow de gestion du TOTP (2FA) que tu viens de partager, structurée clairement :
+
+---
+
+# 📄 Documentation Technique — Gestion du TOTP (2FA) avec Node.js / Express / Speakeasy
+
+## 🎯 Objectif
+
+Mettre en place la gestion complète de l’authentification à deux facteurs (2FA) basée sur le protocole TOTP :
+
+* Activation / Désactivation du 2FA
+* Chiffrement sécurisé de la clé secrète TOTP (AES-256-GCM)
+* Vérification du code TOTP
+* JWT généré uniquement après la validation 2FA
+
+---
+
+## 🔒 Fonctionnement Global
+
+### 1. Génération et chiffrement du secret TOTP :
+
+* Le secret TOTP est généré via **Speakeasy**.
+* Ce secret est ensuite chiffré avec une clé maîtresse (`TOTP_MASTER_KEY`) via **AES-256-GCM**.
+* Le secret chiffré est stocké en base dans la table `user_2fa`.
+
+### 2. Vérification de la connexion TOTP :
+
+* Lors de la vérification, le secret TOTP est **déchiffré**.
+* Le code TOTP entré par l’utilisateur est vérifié via **Speakeasy**.
+* Si le code est valide → un JWT est généré et renvoyé dans un cookie sécurisé.
+
+---
+
+## 📦 Détail des Fonctions Importantes
+
+### 🔐 Chiffrement / Déchiffrement AES-256-GCM
+
+**Clé :** `TOTP_MASTER_KEY` (doit être une clé hexadécimale de 32 bytes, soit 64 caractères hex).
+
+#### 🔒 Fonction de chiffrement :
+
+```js
+encrypt(text, key);
+```
+
+#### 🔓 Fonction de déchiffrement :
+
+```js
+decrypt(encryptedData, key);
+```
+
+---
+
+## 🔄 Flux Backend des Routes 2FA
+
+| Route              | Description                                     | Authentification             |
+| ------------------ | ----------------------------------------------- | ---------------------------- |
+| `GET /isEnabled`   | Vérifie si le 2FA est activé pour l'utilisateur | ✅ JWT requis                 |
+| `POST /enable`     | Active le 2FA et génère un QR Code              | ✅ JWT requis                 |
+| `POST /disable`    | Désactive le 2FA                                | ✅ JWT requis                 |
+| `POST /verify-2fa` | Vérifie le code TOTP et génère un JWT           | 🚫 Pas de JWT requis (login) |
+
+---
+
+### ✅ Exemple de Réponse `/enable`
+
+```json
+{
+  "success": true,
+  "message": "2FA activé. Scanne le QR Code.",
+  "otpauth_url": "otpauth://totp/Rrpm%20(user)?secret=XXXX..."
+}
+```
+
+---
+
+## 🔑 JWT dans ce Flux
+
+| Étape             | JWT émis ? | Où ?                 |
+| ----------------- | ---------- | -------------------- |
+| Activation 2FA    | Non        |                      |
+| Vérification 2FA  | Oui        | Après succès du TOTP |
+| Désactivation 2FA | Non        |                      |
+
+---
+
+## 🔄 Workflow Complet du 2FA (TOTP)
+
+1. **L'utilisateur s'authentifie** (email/mot de passe).
+2. Si 2FA activé → code TOTP requis.
+3. L'utilisateur scanne le QR Code dans son appli 2FA.
+4. Le serveur stocke la clé secrète **chiffrée**.
+5. L'utilisateur entre le code TOTP pour se connecter.
+6. Le serveur déchiffre le secret et vérifie le code.
+7. Si correct → JWT généré + connexion validée.
+
+---
+
+## 🔐 Sécurité :
+
+* **Chiffrement Fort :** AES-256-GCM + clé maître externe.
+* **Cookie JWT sécurisé :**
+
+  * `httpOnly`
+  * `secure` (HTTPS requis)
+  * `sameSite: 'None'` (si nécessaire pour cross-origin)
+* Protection contre brute-force via middleware `Limiter` (anti-spam).
+
+---
+
+## 📋 Résumé
+
+| Composant          | Utilisation                                 |
+| ------------------ | ------------------------------------------- |
+| `speakeasy`        | Génération + vérification TOTP              |
+| `crypto` (AES-GCM) | Chiffrement/déchiffrement clé TOTP          |
+| `jsonwebtoken`     | Gestion des JWT (connexion)                 |
+| `sequelize`        | Requêtes SQL sécurisées                     |
+| `Limiter`          | Limitation de requêtes pour éviter les abus |
+
+---
+
+## 📝 Notes Importantes
+
+* La **clé maître** doit être protégée (ex. : `.env`).
+* Ne jamais exposer le secret TOTP en clair.
+* Toujours vérifier l’ID utilisateur via JWT avant d'activer/désactiver 2FA.
+* Bien gérer les erreurs pour éviter toute fuite d'information.
+
+---
+
+## 🎯 Points clés :
+
+* 🔐 2FA robuste avec stockage sécurisé
+* 📡 JWT délivré uniquement après authentification complète
+* 💾 Données stockées en base sous forme chiffrée
+* 🕵️‍♂️ Résistant aux attaques même en cas de compromission partielle
+
+---
+
+## ✅ Conclusion :
+
+Ce workflow est **sécurisé et conforme** aux bonnes pratiques modernes :
+
+* TOTP (RFC 6238)
+* JWT sécurisé
+* Chiffrement des secrets
