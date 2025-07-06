@@ -494,7 +494,7 @@ decrypt(encryptedData, key);
 
   * `httpOnly`
   * `secure` (HTTPS requis)
-  * `sameSite: 'None'` (si nécessaire pour cross-origin)
+  * `sameSite: 'Strict'` (si nécessaire pour cross-origin)
 * Protection contre brute-force via middleware `Limiter` (anti-spam).
 
 ---
