@@ -1,37 +1,44 @@
 <script setup>
 import { ref } from 'vue'
 import { sendResetEmail } from '@/functions/general'
+import { isValidEmail } from '@/functions/FormValidation'
 
 const email = ref('')
-const popupMessage = ref('')
-const popupVisible = ref(false)
-
-const showPopup = (message) => {
-  popupMessage.value = message
-  popupVisible.value = true
-}
+const errorMessage = ref('')
 
 const handleSubmit = async () => {
+  errorMessage.value = ''  // Reset error
+
   if (!email.value.trim()) {
-    return showPopup("Please enter your email.")
+    errorMessage.value = 'Please enter your email.'
+    return
+  }
+
+  if (!isValidEmail(email.value)) {
+    errorMessage.value = 'Invalid email format.';
+    return;
   }
 
   try {
     const response = await sendResetEmail(email.value.trim())
     if (response.ok) {
-      showPopup("If this email exists, a reset link has been sent.")
+      errorMessage.value = 'If this email exists, a reset link has been sent.'
     } else {
       const { error } = await response.json()
-      showPopup("Error: " + (error || "Could not send email"))
+      errorMessage.value = error || 'Could not send email'
     }
   } catch (err) {
-    console.error("Unexpected error:", err)
-    showPopup("An unexpected error occurred.")
+    console.error('Unexpected error:', err)
+    errorMessage.value = 'An unexpected error occurred.'
   }
 }
 </script>
 
 <template>
+  <!-- Error Message -->
+  <p v-if="errorMessage" class="customErrors mt-2">
+      {{ errorMessage }}
+  </p>
   <div class="container vh-100 d-flex justify-content-center align-items-center" style="flex-direction: column;">
     <div class="passg-container text-center">
       <h2><span class="emoji">📧</span> Enter your email</h2>
@@ -49,15 +56,7 @@ const handleSubmit = async () => {
         This is a safety measure that protects your passwords against determined and skilled attackers.
       </p>
     </div>
-
-    <div v-if="popupVisible" class="custom-popup">
-      <div class="custom-popup-content">
-        <span id="custom-popup-message">{{ popupMessage }}</span>
-        <button class="popup-close-btn" @click="popupVisible = false">&times;</button>
-      </div>
-    </div>
   </div>
 </template>
-
 
 <style scoped src="@/assets/main.css"></style>
