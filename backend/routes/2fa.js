@@ -152,7 +152,7 @@ router.post("/disable", verifyToken, Limiter, async (req, res) => {
   }
 });
 
-router.post('/verify-2fa', async (req, res) => {
+router.post('/verify-2fa', Limiter, async (req, res) => {
   const { userId, code } = req.body;
 
   const [result] = await sequelize.query(
@@ -182,7 +182,7 @@ router.post('/verify-2fa', async (req, res) => {
     res.cookie("token", token, { 
         httpOnly: true,
         secure: true,
-        sameSite: 'None',
+        sameSite: 'Strict',
     });
     res.json({ success: true, message: '2FA validated, login successful' });
   } else {

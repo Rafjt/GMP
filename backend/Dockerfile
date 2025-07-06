@@ -7,6 +7,7 @@ WORKDIR /
 # Copy dependency definitions and install only production deps
 COPY package*.json ./
 RUN npm ci --omit=dev
+RUN npm audit fix
 
 # Copy app code
 COPY . .
