@@ -36,6 +36,10 @@ onMounted(async () => {
         url.value = pwd.url || ''
       } catch (err) {
         console.error("Erreur de déchiffrement :", err)
+        if (err?.message === 'Key is missing.') {
+          // Redirige vers /login si la clé est absente
+          router.push('/login');
+        }
       }
     } else {
       console.warn("Mot de passe non trouvé pour l'id :", passwordId.value)

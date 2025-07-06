@@ -16,28 +16,12 @@ function respond(sendResponse, success, payload = {}) {
   sendResponse({ success, ...payload });
 }
 
-async function getNonceCounter() {
-  const key = 'aes-gcm-nonce-counter';
-  return new Promise((resolve) => {
-    chrome.storage.local.get([key], (result) => {
-      let value = parseInt(result[key], 10);
-      if (isNaN(value)) value = 0;
-      const next = value + 1;
-      chrome.storage.local.set({ [key]: next }, () => resolve(value));
-    });
-  });
+// Generates a secure random IV (12 bytes for AES-GCM)
+function generateRandomIV() {
+  return crypto.getRandomValues(new Uint8Array(12));
 }
 
-
-function generateDeterministicIV(counter) {
-  const iv = new Uint8Array(12); // 96 bits
-  const view = new DataView(iv.buffer);
-  view.setUint32(8, counter); // utilise les 4 derniers octets comme compteur
-  return iv;
-}
-
-
-//Handler UNLOCK
+// Handler UNLOCK
 async function handleUnlock(message, sendResponse) {
   const { password, salt } = message;
   try {
@@ -50,13 +34,13 @@ async function handleUnlock(message, sendResponse) {
   }
 }
 
-//Handler LOCK
+// Handler LOCK
 function handleLock(sendResponse) {
   cachedKey = null;
   respond(sendResponse, true);
 }
 
-//Handler GET_KEY
+// Handler GET_KEY
 function handleGetKey(sendResponse) {
   if (!cachedKey) {
     console.warn("Key not found");
@@ -66,15 +50,14 @@ function handleGetKey(sendResponse) {
   respond(sendResponse, true, { key: cachedKey });
 }
 
-// Handler ENCRYPT modifié
+// Handler ENCRYPT (now uses random IVs)
 async function handleEncrypt(message, sendResponse) {
   if (!cachedKey) {
     return respond(sendResponse, false, { error: "Key is missing." });
   }
 
   try {
-    const counter = await getNonceCounter();
-    const iv = generateDeterministicIV(counter);
+    const iv = generateRandomIV();  // Generate random IV
     const enc = new TextEncoder().encode(message.plainText);
 
     const buffer = await crypto.subtle.encrypt(
@@ -95,21 +78,24 @@ async function handleEncrypt(message, sendResponse) {
   }
 }
 
-//Handler DECRYPT
+// Handler DECRYPT
 async function handleDecrypt(message, sendResponse) {
   if (!cachedKey) {
     return respond(sendResponse, false, { error: "Key is missing." });
   }
 
   try {
-
     const combined = Uint8Array.from(atob(message.cipherText), c => c.charCodeAt(0));
     const iv = combined.slice(0, 12);
     const data = combined.slice(12);
 
-    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, cachedKey, data);
-    const text = new TextDecoder().decode(decrypted);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      cachedKey,
+      data
+    );
 
+    const text = new TextDecoder().decode(decrypted);
     respond(sendResponse, true, { plainText: text });
   } catch (error) {
     console.error("Decryption error:", error);
@@ -117,24 +103,24 @@ async function handleDecrypt(message, sendResponse) {
   }
 }
 
-//Dispatcher des calls
+// Dispatcher
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!isValidSender(sender)) {
     console.warn("Unauthorized sender: ", sender);
     respond(sendResponse, false, { error: "Unauthorized sender" });
-    return; // No need to keep port open
+    return;
   }
 
   if (!isValidMessage(message)) {
     console.warn("Invalid message format :", message);
     respond(sendResponse, false, { error: "Invalid message format" });
-    return; // No need to keep port open
+    return;
   }
 
   switch (message.type) {
     case 'UNLOCK':
       handleUnlock(message, sendResponse);
-      return true; // ✅ Keep message channel open for async response
+      return true;
 
     case 'LOCK':
       handleLock(sendResponse);
@@ -146,11 +132,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'ENCRYPT':
       handleEncrypt(message, sendResponse);
-      return true; // ✅
+      return true;
 
     case 'DECRYPT':
       handleDecrypt(message, sendResponse);
-      return true; // ✅
+      return true;
 
     default:
       respond(sendResponse, false, { error: "Unknown message type" });
