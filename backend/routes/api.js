@@ -106,17 +106,19 @@ router.put('/master/password', verifyToken, Limiter, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Step 2: Compare old password with hash
     const isMatch = await bcrypt.compare(oldPassword, user.hashed_master_password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Old password is incorrect' });
     }
 
-    // Step 3: Hash new password
+    const isSamePassword = await bcrypt.compare(newPassword, user.hashed_master_password);
+    if (isSamePassword) {
+      return res.status(400).json({ error: 'New password cannot be the same as the old password' });
+    }
+
     const saltRounds = 12;
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    // Step 4: Update password in DB
     await sequelize.query(
       'UPDATE rrpm_user SET hashed_master_password = :password WHERE id = :id',
       {
@@ -132,6 +134,7 @@ router.put('/master/password', verifyToken, Limiter, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 
 /// ciphered passwords
