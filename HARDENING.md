@@ -100,7 +100,7 @@ Les messages d'erreur sont **neutres** pour ne pas divulguer d'informations :
 
 * Comparaison du mot de passe haché avec **bcrypt**
 * Renvoi d’un token JWT signé (durée : 1h)
-* Stockage dans un cookie **HttpOnly**, **secure**, **sameSite: 'Strict'** (prod)
+* Stockage dans un cookie **HttpOnly**, **secure**, **sameSite: 'None'** (prod)
 
 #### Register
 
@@ -494,7 +494,7 @@ decrypt(encryptedData, key);
 
   * `httpOnly`
   * `secure` (HTTPS requis)
-  * `sameSite: 'Strict'` (si nécessaire pour cross-origin)
+  * `sameSite: 'None'` (si nécessaire pour cross-origin)
 * Protection contre brute-force via middleware `Limiter` (anti-spam).
 
 ---

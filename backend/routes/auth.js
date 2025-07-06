@@ -251,7 +251,7 @@ router.post('/logout', (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
     secure: true,
-    sameSite: 'Strict',
+    sameSite: 'None',
   });
   res.setHeader('X-Debug-Logout', 'Token cookie cleared');
   res.json({ message: 'Logged out' });

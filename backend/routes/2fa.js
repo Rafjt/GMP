@@ -182,7 +182,7 @@ router.post('/verify-2fa', Limiter, async (req, res) => {
     res.cookie("token", token, { 
         httpOnly: true,
         secure: true,
-        sameSite: 'Strict',
+        sameSite: 'None',
     });
     res.json({ success: true, message: '2FA validated, login successful' });
   } else {
