@@ -184,7 +184,7 @@ const handleForgottenPwd = async () => {
       </div>
 
         <p class="mt-3">
-          <a @click="handleForgottenPwd">Forgot my password</a>
+          <a @click="handleForgottenPwd" style="color: white; text-decoration: underline;">Forgot my password</a>
         </p>
 
       <button
