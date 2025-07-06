@@ -138,7 +138,7 @@ const handleDeleteAccount = async () => {
       <p v-if="twoFaFeedback" class="customEvent">{{ twoFaFeedback }}</p>
     </div>
     <div v-if="qrCodeDataUrl">
-        <p>Scan this QR Code with your Authenticator app:</p>
+        <p style="color: white;">Scan this QR Code with your Authenticator app:</p>
         <img :src="qrCodeDataUrl" alt="2FA QR Code" class="qr-code" />
     </div>
 
@@ -150,10 +150,10 @@ const handleDeleteAccount = async () => {
 
       <div v-if="showPasswordFields" class="mt-4 space-y-2">
         <label for="old-password" class="old-new-password-label">Old password</label>
-        <input v-model="oldPassword" type="password" autocomplete="off" />
+        <input v-model="oldPassword" type="password" autocomplete="off" class="old-new-password" />
 
         <label for="new-password" class="old-new-password-label">New password</label>
-        <input v-model="newPassword" type="password" autocomplete="off" />
+        <input v-model="newPassword" type="password" autocomplete="off" class="old-new-password" />
 
         <button class="button-event mt-2" @click="handlechangeMasterPassword">
           Confirm change
